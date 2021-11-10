@@ -1,0 +1,17 @@
+language: python
+python:
+- 3.8
+- 3.7
+- 3.6
+install: pip install -U tox-travis
+script: tox
+deploy:
+  provider: pypi
+  distributions: sdist bdist_wheel
+  user: __token__
+  password:
+    secure: sj5UwgJ3bxgQD1bQt4+M07iVmu9pT5bjxocMTs3qcO920xVI3CDGuBmV37uQOCPpZHwDVCmLMpucamZgX27ArG7sm6OJHZGXaqYEEceFLPSB3HW4XK+H6W03IENRgeYwbqOjE+u3YzICdxJ1Ue+e6IHqXp2OpCtxn1uWuQRwCnp9MjzfwqkSgtvldVAGafo8qS9rrSlFqaKkMBS2UZsxP5+oMlHoVeLQqs8Rb6O4NOS+qrTgzffDRaEX/e95reqMHrUqUEpjc3ZAn1ECNHFB7gCfqxqCxH1nHng3fQI7nHHz86Aa6WCfTjJZlolzFg0I2d5GqU8dZyTJ1KBvxZkiuGsW9Upg/sSpgEdUFeaphSNl3Q+VEnkFzdtHFUlQGfHS6il/y4kCeozhkB5FRUqBqfKlkb6LSBkkZxp6FHK+n+gXUyOvCRf92sFboo+21BvyGsbCaxXjDgQlQ8pRKkW+XRcygxNpWdBlT6ng2fKBiRQqf+fr2sOvA3dLn4Q/FDNpd6XiaLUajSKudqe4XbTZcNueJNO5zkrOr3qDekTvFtleMnCesurpl6/OZ+RSSfDKETZMg5GQiX5P2fLsg4/lYciKJADlWQ5SwhAVAosgftY2FC/ronI08vXjL/LWWxOOeOr/GVbxdxQBIYaKAch8+xjJYeyyYZzFnm86RBN+lLc=
+  on:
+    tags: true
+    repo: Mng-dev-ai/drf_turbo
+    python: 3.8

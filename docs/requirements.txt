@@ -1,0 +1,10 @@
+forbiddenfruit
+djangorestframework
+pyyaml
+cython
+psycopg2-binary
+sphinx-issues
+furo
+
+
+
