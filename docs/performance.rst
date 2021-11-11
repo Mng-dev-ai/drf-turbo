@@ -14,7 +14,7 @@ Using Pydantic's own benchmark :
           trafaret best=221.880μs/iter avg=223.723μs/iter stdev=1.050μs/iter version=2.1.0
           schematics best=728.707μs/iter avg=745.313μs/iter stdev=11.523μs/iter version=2.1.1
           django-rest-framework best=856.090μs/iter avg=885.471μs/iter stdev=39.377μs/iter version=3.12.4
-          drf_turbo best=111.754μs/iter avg=113.794μs/iter stdev=1.274μs/iter version=0.3.8
+          drf-turbo best=111.754μs/iter avg=113.794μs/iter stdev=1.274μs/iter version=0.1.1
           cerberus best=1561.922μs/iter avg=1638.844μs/iter stdev=44.257μs/iter version=1.3.4
 
 
