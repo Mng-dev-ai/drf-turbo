@@ -9,7 +9,7 @@ from drf_turbo.renderers import JSONRenderer,UJSONRenderer,ORJSONRenderer
 
 __author__ = """Michael Gendy"""
 __email__ = 'mngback@gmail.com'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 
 __all__ = [
     'BaseSerializer',

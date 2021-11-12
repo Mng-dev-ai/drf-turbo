@@ -203,7 +203,6 @@ cdef class Serializer(BaseSerializer):
     @property
     def _writable_fields(self):    
         """
-        @property _writable_fields
         Return a list of all writable fields.
         """
         cdef str k
