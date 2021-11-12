@@ -2,7 +2,12 @@ from django.db import models
 from drf_turbo.fields import (
     Field,IntField,BoolField,StrField,DateField,TimeField,DateTimeField,EmailField,FileField,FloatField,URLField,IPField,UUIDField,RelatedField,ManyRelatedField,ChoiceField,DecimalField,ArrayField,JSONField
 )
-from django.contrib.postgres import fields as postgres_fields
+
+try:
+    from django.contrib.postgres import fields as postgres_fields
+    
+except ImportError:
+    postgres_fields = None
 
 class SerializerMetaclass(type):
     @classmethod
@@ -48,11 +53,12 @@ class ModelSerializerMetaclass(SerializerMetaclass):
         models.GenericIPAddressField: IPField,
         models.JSONField : JSONField,
         models.UUIDField : UUIDField,
-        postgres_fields.ArrayField: ArrayField,
-        postgres_fields.JSONField : JSONField,
-        
-
+    
     }
+    
+    if postgres_fields is not None:
+        TYPE_MAPPING[postgres_fields.ArrayField] = ArrayField
+        TYPE_MAPPING[postgres_fields.JSONField] = JSONField
 
     @staticmethod
     def _get_implicit_fields(model_fields,fields,exclude):

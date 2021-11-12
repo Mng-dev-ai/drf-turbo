@@ -30,7 +30,7 @@ cdef class Field :
     cpdef get_initial(self)
     cpdef get_attribute(self, instance,attr=*)
     cpdef get_default_value(self)
-    cpdef validate_empty_values(self, data)
+    cpdef tuple validate_empty_values(self, data)
     cpdef long validate_or_raise(self,value) except -1
 
 
@@ -49,7 +49,8 @@ cdef class URLField(StrField):
     pass
 
 cdef class RegexField(StrField):
-    pass
+    cdef public:
+        regex
 
 cdef class IPField(StrField):
     pass

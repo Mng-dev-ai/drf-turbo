@@ -216,8 +216,8 @@ class TestMinMaxIntField(FieldValues):
         3: 3,
     }
     invalid_inputs = {
-        0: ['Ensure this value is greater than or equal to 1.'],
-        '4': ['Ensure this value is less than or equal to 3.'],
+        0: ['Must be greater than or equal to 1.'],
+        '4': ['Must be less than or equal to 3.'],
     }
     outputs = {}
     field = dt.IntField(min_value=1, max_value=3)
@@ -252,8 +252,8 @@ class TestMinMaxFloatField(FieldValues):
         1.0: 1.0,
     }
     invalid_inputs = {
-        0.9: ['Ensure this value is greater than or equal to 1.'],
-        '3.1': ['Ensure this value is less than or equal to 3.'],
+        0.9: ['Must be greater than or equal to 1.'],
+        '3.1': ['Must be less than or equal to 3.'],
     }
     outputs = {}
     field = dt.FloatField(min_value=1, max_value=3)
@@ -319,8 +319,8 @@ class TestMinMaxDecimalField(FieldValues):
         '20.0': Decimal('20.0'),
     }
     invalid_inputs = {
-        '9.9': ['Ensure this value is greater than or equal to 10.'],
-        '20.1': ['Ensure this value is less than or equal to 20.'],
+        '9.9': ['Must be greater than or equal to 10.'],
+        '20.1': ['Must be less than or equal to 20.'],
     }
     outputs = {}
     field = dt.DecimalField(

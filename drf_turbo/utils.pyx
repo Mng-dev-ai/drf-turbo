@@ -1,9 +1,7 @@
 #cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
 
 import collections
-from django.utils.encoding import force_str
 from django.core.exceptions import ObjectDoesNotExist
-import operator
 
 
 cpdef bint is_iterable_and_not_string(arg):
@@ -38,6 +36,13 @@ cpdef get_error_detail(exc_info):
         ] for k, errors in error_dict.items()
     }
 
+cpdef str force_str(object obj, str encoding='utf-8'):
+    if isinstance(obj, str):
+        return obj
+    elif isinstance(obj, bytes):
+        return obj.decode(encoding)
+    else:
+        return str(obj)
 
 cpdef get_execption_detail(exception):
     if isinstance(exception,(list,tuple)):
@@ -49,7 +54,8 @@ cpdef get_execption_detail(exception):
     return force_str(exception)
 
 
-cpdef get_attribute(instance, attrs):
+cpdef object get_attribute(object instance, list attrs):
+    cdef str attr
     for attr in attrs :
         try:
             if isinstance(instance, dict):
@@ -71,10 +77,12 @@ cpdef get_attribute(instance, attrs):
     return instance
 
     
-cpdef deepcopy(dict data):
+cpdef dict deepcopy(dict data):
     cdef dict output = data.copy()
     cdef str key
     for key, value in output.items():
         output[key] = deepcopy(value) if isinstance(value, dict) else value        
     return output
+
+
 

@@ -41,8 +41,6 @@ Requirements
 
 * forbiddenfruit
 
-* psycopg2-binary
-
 * pyyaml(OpenAPI)
 
 * uritemplate(OpenAPI)
@@ -56,6 +54,12 @@ Installation
 .. code-block:: console
 
     $ pip install drf-turbo
+
+
+Performance
+-----------
+
+https://drf-turbo.readthedocs.io/en/latest/performance.html
 
 
 Examples
