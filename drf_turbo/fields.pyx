@@ -1,28 +1,36 @@
 cimport cython
 
-from drf_turbo.utils import is_iterable_and_not_string,get_error_detail,is_collection,get_attribute
+from drf_turbo.utils import is_iterable_and_not_string,get_error_detail,is_collection,get_attribute,force_str
 from drf_turbo.exceptions import *
-from django.core.validators import EmailValidator,URLValidator,RegexValidator,MaxLengthValidator,MinLengthValidator,MinValueValidator,MaxValueValidator,ProhibitNullCharactersValidator
 from django.core.exceptions import ValidationError as DjangoValidationError
-import ipaddress
-import copy
-import json
+import ipaddress,copy,json,uuid,decimal,re,datetime
 from django.core.exceptions import ObjectDoesNotExist
-import uuid
 from django.utils.dateparse import (
     parse_date, parse_datetime, parse_time
 )
-import decimal,re
-from django.utils.encoding import  smart_str
 from rest_framework.settings import api_settings
-import datetime
 from rest_framework import (
     ISO_8601
 )
 from django.conf import settings
 from django.utils import timezone
-from django.utils.timezone import utc
 from pytz.exceptions import InvalidTimeError
+
+EMAIL_REGEX = re.compile(
+    r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"
+    r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])*'
+    r")@(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,63}(?<!-)\.?$",
+    re.IGNORECASE,
+)
+
+URL_REGEX = re.compile(
+    r'^(?:http|ftp)s?://'  # http:// or https://
+    r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain..
+    r'localhost|'  # localhost...
+    r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+    r'(?::\d+)?'  # optional port
+    r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+    
 
 cdef object NO_DEFAULT = object()
 
@@ -217,7 +225,7 @@ cdef class Field :
             )
             raise type(exc)(msg)
 
-    cpdef validate_empty_values(self, data):
+    cpdef tuple validate_empty_values(self, data):
         """
         Validate empty values, and either:
         * Raise `ValidationError`, indicating invalid data.
@@ -247,7 +255,7 @@ cdef class Field :
         """
         Validate an input data.
         """
-
+        cdef bint is_empty_value
         (is_empty_value, data) = self.validate_empty_values(data)
         if is_empty_value:
             return data
@@ -287,7 +295,11 @@ cdef class StrField(Field):
     
     default_error_messages = {
         'blank': 'May not be blank.',
-        'invalid': 'Not a valid string.'
+        'invalid': 'Not a valid string.',
+        'null' : 'Null characters are not allowed.',
+        'min_length' : 'Must have at least {min_length} characters.',
+        'max_length': 'Must have no more than {max_length} characters.',
+
     }    
     _initial = ''
     def __init__(self,**kwargs) :
@@ -296,13 +308,6 @@ cdef class StrField(Field):
         self.max_length = kwargs.pop('max_length', None)
         self.min_length = kwargs.pop('min_length', None)
         super().__init__(**kwargs)
-        if self.max_length is not None:
-            self.validators.append(
-                MaxLengthValidator(self.max_length))
-        if self.min_length is not None:
-            self.validators.append(MinLengthValidator(self.min_length))
-        self.validators.append(ProhibitNullCharactersValidator())
-
          
     cpdef serialize(self,value,dict context) :
         return str(value)
@@ -313,6 +318,16 @@ cdef class StrField(Field):
                 raise self.raise_if_fail('blank')
         if isinstance(data, bool) or not isinstance(data, (str, int, float,)):
            raise self.raise_if_fail('invalid')
+
+        if self.min_length is not None:
+            if len(data) < self.min_length:
+                raise self.raise_if_fail("min_length",min_length=self.min_length)
+        if self.max_length is not None:
+            if len(data) > self.max_length:
+                raise self.raise_if_fail("max_length",max_length=self.max_length)
+        if '\x00' in str(data):
+            raise self.raise_if_fail('null')
+
         data = str(data)
         return data.strip() if self.trim_whitespace else data
     
@@ -331,8 +346,6 @@ cdef class EmailField(StrField):
     def __init__(self, **kwargs): 
         self.to_lower = kwargs.pop('to_lower', False)
         super().__init__(**kwargs)
-        validator = EmailValidator(message=self.error_messages['invalid'])
-        self.validators.append(validator)
         
     cpdef inline serialize(self,value,dict context):
         if self.to_lower :
@@ -340,6 +353,10 @@ cdef class EmailField(StrField):
         return value
     
     cpdef inline deserialize(self,data,dict context):
+        match = EMAIL_REGEX.match(data)
+        if not match:
+            raise self.raise_if_fail("invalid")
+        data = str(data)
         if self.to_lower :
             return data.lower()
         return data
@@ -356,16 +373,21 @@ cdef class URLField(StrField):
         'invalid': 'Enter a valid URL.'
     }
 
-    def __init__(self, **kwargs): 
-        super().__init__(**kwargs)
-        validator = URLValidator(message=self.error_messages['invalid'])
-        self.validators.append(validator)
+    cpdef inline deserialize(self,data,dict context):
+        match = URL_REGEX.match(data)
+        if not match:
+            raise self.raise_if_fail("invalid")
+        data = str(data)
+        return data 
+
+    
 
 @cython.final
 cdef class RegexField(StrField):
     """
     A field that validates input against a given regular expression.
 
+    :param regex: The regular expression to use for validation.
     :param kwargs: The same keyword arguments that :class:`Field` receives.
     """
 
@@ -374,9 +396,16 @@ cdef class RegexField(StrField):
     }
 
     def __init__(self, regex, **kwargs):
+        self.regex = regex
         super().__init__(**kwargs)
-        validator = RegexValidator(regex, message=self.error_messages['invalid'])
-        self.validators.append(validator)
+        
+    cpdef inline deserialize(self,data,dict context):
+        compiled = re.compile(self.regex,flags=0)
+        match = compiled.search(str(data))
+        if not match:
+            raise self.raise_if_fail("invalid")
+        return str(data)
+
 
 @cython.final
 cdef class IPField(StrField):
@@ -457,15 +486,19 @@ cdef class SlugField(Field):
     def __init__(self, allow_unicode=False, **kwargs):
         self.allow_unicode = allow_unicode
         super().__init__(**kwargs)
-        if self.allow_unicode:
-            validator = RegexValidator(re.compile(r'^[-\w]+\Z', re.UNICODE), message=self.error_messages['invalid_unicode'])
+
+    cpdef inline deserialize(self,data,dict context):
+        if self.allow_unicode :
+            regex = re.compile(r'^[-\w]+\Z', re.UNICODE)
         else:
-            validator = RegexValidator(re.compile(r'^[-a-zA-Z0-9_]+$'), message=self.error_messages['invalid'])
-        self.validators.append(validator)
-
-
-
-
+            regex = re.compile(r'^[-a-zA-Z0-9_]+$')
+        compiled = re.compile(regex,flags=0)
+        match = compiled.search(str(data))
+        if not match and not self.allow_unicode:
+            raise self.raise_if_fail("invalid")
+        elif not match and self.allow_unicode:
+            raise self.raise_if_fail("invalid_unicode")
+        return str(data)
 
 @cython.final
 cdef class IntField(Field):
@@ -478,18 +511,14 @@ cdef class IntField(Field):
     """
     default_error_messages = {
         'invalid': 'A valid integer is required.',
+        'min_value': 'Must be greater than or equal to {min_value}.',
+        'max_value': 'Must be less than or equal to {max_value}.',
     }
     re_decimal = re.compile(r'\.0*\s*$')  # allow e.g. '1.0' as an int, but not '1.2'
     def __init__(self,**kwargs):
         self.max_value = kwargs.pop('max_value', None)
         self.min_value = kwargs.pop('min_value', None)
         super().__init__(**kwargs)
-        if self.max_value is not None:
-            self.validators.append(
-                MaxValueValidator(self.max_value))
-        if self.min_value is not None:
-            self.validators.append(
-                MinValueValidator(self.min_value))
         
     cpdef inline serialize(self,value,dict context):
         return int(value)
@@ -499,6 +528,11 @@ cdef class IntField(Field):
             data = int(self.re_decimal.sub('', str(data)))
         except (ValueError, TypeError):
             raise self.raise_if_fail('invalid')
+        if self.min_value is not None and data < self.min_value:
+            raise self.raise_if_fail("min_value",min_value=self.min_value)
+        if self.max_value is not None and data > self.max_value:
+            raise self.raise_if_fail("max_value",max_value=self.max_value)
+
         return data
 
 @cython.final
@@ -513,28 +547,31 @@ cdef class FloatField(Field):
 
     default_error_messages = {
         'invalid': 'A valid number is required.',
+        'min_value': 'Must be greater than or equal to {min_value}.',
+        'max_value': 'Must be less than or equal to {max_value}.',
+
     }
     
     def __init__(self,**kwargs):
         self.max_value = kwargs.pop('max_value', None)
         self.min_value = kwargs.pop('min_value', None)
         super().__init__(**kwargs)
-        if self.max_value is not None:
-            self.validators.append(
-                MaxValueValidator(self.max_value))
-        if self.min_value is not None:
-            self.validators.append(
-                MinValueValidator(self.min_value))
-
 
     cpdef inline serialize(self,value,dict context):
         return float(value)
     
     cpdef inline deserialize(self,data,dict context):
         try:
-            return float(data)
+            data =  float(data)
         except (TypeError, ValueError):
            raise self.raise_if_fail('invalid')
+
+        if self.min_value is not None and data < self.min_value:
+            raise self.raise_if_fail("min_value",min_value=self.min_value)
+        if self.max_value is not None and data > self.max_value:
+            raise self.raise_if_fail("max_value",max_value=self.max_value)
+
+        return data
 
 @cython.final
 cdef class DecimalField(Field):
@@ -552,8 +589,8 @@ cdef class DecimalField(Field):
 
     default_error_messages = {
         'invalid': 'A valid number is required.',
-        'max_value': 'Ensure this value is less than or equal to {max_value}.',
-        'min_value': 'Ensure this value is greater than or equal to {min_value}.',
+        'max_value': 'Must be less than or equal to {max_value}.',
+        'min_value': 'Must be greater than or equal to {min_value}.',
         'max_digits': 'Ensure that there are no more than {max_digits} digits in total.',
         'max_decimal_places': 'Ensure that there are no more than {max_decimal_places} decimal places.',
         'max_whole_digits': 'Ensure that there are no more than {max_whole_digits} digits before the decimal point.',
@@ -577,13 +614,6 @@ cdef class DecimalField(Field):
             self.coerce_to_string = coerce_to_string
 
         super().__init__(**kwargs)
-
-        if self.max_value is not None:
-            self.validators.append(
-                MaxValueValidator(self.max_value))
-        if self.min_value is not None:
-            self.validators.append(
-                MinValueValidator(self.min_value))
       
         if rounding is not None:
             valid_roundings = [v for k, v in vars(decimal).items() if k.startswith('ROUND_')]
@@ -616,7 +646,7 @@ cdef class DecimalField(Field):
         instance.
         """
 
-        data = smart_str(data).strip()    
+        data = force_str(data).strip()    
 
         if data == '' and self.allow_null:
             return None
@@ -634,6 +664,12 @@ cdef class DecimalField(Field):
 
         if value in (decimal.Decimal('Inf'), decimal.Decimal('-Inf')):
             raise self.raise_if_fail('invalid')
+
+        if self.min_value is not None and value < self.min_value:
+            raise self.raise_if_fail("min_value",min_value=self.min_value)
+
+        if self.max_value is not None and value > self.max_value:
+            raise self.raise_if_fail("max_value",max_value=self.max_value)
 
         return self.quantize(self.validate_precision(value))
 
@@ -893,7 +929,7 @@ cdef class DateTimeField(Field):
             except InvalidTimeError:
                 raise self.raise_if_fail('make_aware', timezone=self.timezone)
         elif (self.timezone is None) and timezone.is_aware(value):
-            return timezone.make_naive(value, utc)
+            return timezone.make_naive(value, timezone.utc)
         return value
 
 
@@ -1155,6 +1191,8 @@ cdef class ArrayField(Field):
         'not_a_list': 'Expected a list of items but got type "{input_type}".',
         'empty': 'This list may not be empty.',
         'exact_items': 'Must have {exact_items} items.',
+        'min_items' : 'Must have at least {min_items} items.',
+        'max_items' : 'Must have no more than {max_items} items.',
 
     }
     _initial = []
@@ -1168,11 +1206,6 @@ cdef class ArrayField(Field):
         super().__init__(**kwargs)
         if self.child is not None:
             self.child.bind(field_name='', root=self)
-        if self.max_items is not None:
-            self.validators.append(MaxLengthValidator(self.max_items,message=f'Must have no more than {self.max_items} items.'))
-        if self.min_items is not None:
-            self.validators.append(MinLengthValidator(self.min_items,message=f'Must have at least {self.min_items} items.'))
-
         if self.exact_items is not None:
             self.min_items = self.exact_items
             self.max_items = self.exact_items
@@ -1198,6 +1231,11 @@ cdef class ArrayField(Field):
             and len(data) != self.min_items
         ):
             raise self.raise_if_fail("exact_items",exact_items=self.exact_items)
+        if self.min_items is not None and len(data) < self.min_items:
+            raise self.raise_if_fail("min_items",min_items=self.min_items)
+        elif self.max_items is not None and len(data) > self.max_items:
+            raise self.raise_if_fail("max_items",max_items=self.max_items)
+
         return self.run_child_validation(data,context)
 
     cpdef inline run_child_validation(self,data,dict context):

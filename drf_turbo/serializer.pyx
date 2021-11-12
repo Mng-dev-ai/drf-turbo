@@ -116,6 +116,9 @@ cdef class BaseSerializer(Field):
         """
         Return the initial data for the fields.
         """
+        cdef str name
+        cdef Field field
+
         if self._data is not None:
 
             if not isinstance(self._data, Mapping):
@@ -314,7 +317,7 @@ cdef class Serializer(BaseSerializer):
         return serializer.fields
 
 
-    cdef dict _serialize(self,object instance,dict fields):
+    cdef inline dict _serialize(self,object instance,dict fields):
         
         cdef str name
         cdef Field field
@@ -369,7 +372,7 @@ cdef class Serializer(BaseSerializer):
             return [self._serialize(o,fields) for o in instance]
         return self._serialize(instance,fields)
     
-    cdef dict _deserialize(self, object data,dict fields):
+    cdef inline dict _deserialize(self, object data,dict fields):
         if not isinstance(data, Mapping):
             raise ValidationError(
                 'Invalid data type: %s' % type(data).__name__
@@ -377,6 +380,7 @@ cdef class Serializer(BaseSerializer):
         cdef dict ret = {} 
         cdef dict errors = {}
         cdef str name
+        cdef str attr
         for name,field in fields.items():
             attr = field.attr if field.attr and not '.' in field.attr else name
             validate_method = getattr(self, 'validate_' + attr, None)
