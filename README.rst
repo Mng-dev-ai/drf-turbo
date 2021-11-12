@@ -79,7 +79,7 @@ Declaring Serializers
             self.email = email
             self.created = created or datetime.now()
 
-        user = User(username='test' , email='test@example.com')
+    user = User(username='test' , email='test@example.com')
 
 
 
@@ -111,7 +111,7 @@ Deserializing objects
     serializer.is_valid()
     # True
     serializer.validated_data
-    # {'username': 'new_test', 'email': 'test2@example.com', 'created': '2021-11-04T23:29:13.191304Z'}
+    # {'username': 'new_test', 'email': 'test2@example.com', 'created': datetime.datetime(2021, 11, 12, 6, 10, 44, 85118)}}
 
 Validation
 ----------
@@ -122,7 +122,7 @@ Validation
     serializer.is_valid()
     # False
     serializer.errors
-    # {'username': ['This field is required.'], 'email': ['Enter a valid email address.']}
+    # {'username': ['This field is required.'], 'email': ['Enter a valid email address.'],'created': ['This field is required.']}
 
 
 Field-level validation
@@ -170,7 +170,7 @@ Nested Serializers
             self.email = email
             self.created = created or datetime.now()
 
-        user = User(username='test' , email='test@example.com')
+    user = User(username='test' , email='test@example.com')
 
     class UserSerializer(dt.Serializer):
         username = dt.StrField(max_length=50)
@@ -179,9 +179,10 @@ Nested Serializers
 
     class Profile : 
         def __init__(self, age=25):
+            self.age = age
             self.user = user
 
-        profile = Profile()
+    profile = Profile()
 
 
     class ProfileSerializer(dt.Serializer):
@@ -202,15 +203,15 @@ drf-turbo provides option to enclude or exclude fields from serializer using ``o
 
 .. code-block:: python
 
-    serializer = UserSerializer(only=('id','username'))
+    serializer = UserSerializer(user,only=('id','username'))
 
     or 
 
-    serializer = ProfileSerializer(exclude=('id','user__email'))
+    serializer = ProfileSerializer(profile,exclude=('id','user__email'))
 
     or 
 
-    http://127.0.0.1:8000/?only=id,username
+    http://127.0.0.1:8000/user/?only=id,username
 
     
 Required Fields

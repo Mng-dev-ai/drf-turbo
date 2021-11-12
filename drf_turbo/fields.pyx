@@ -221,7 +221,9 @@ cdef class Field :
             if not self.required:
                 raise SkipField()
             msg = (
-                'Got {exc_type} when attempting to get a value for field'
+                'Got {exc_type} when attempting to get a value for field'.format(
+                    exc_type=type(exc).__name__,
+                )
             )
             raise type(exc)(msg)
 
@@ -241,12 +243,12 @@ cdef class Field :
             if getattr(self.root, 'partial', False):
                 raise SkipField()
             if self.required:
-                raise ValidationError('This field is required.')
+                raise self.raise_if_fail('required')
             return (True, self.get_default_value())
 
         if data is None:
             if not self.allow_null:
-                raise ValidationError('This field may not be null.')
+                raise self.raise_if_fail('null')
             return (True, None)
 
         return (False, data)
