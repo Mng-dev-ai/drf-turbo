@@ -329,7 +329,7 @@ cdef class Serializer(BaseSerializer):
             else:
                 try:
                     if isinstance(field,RelatedField):
-                        result = field.get_attribute(instance,attr + '_id')
+                        result = field.get_attribute(instance,[attr + '_id'])
                     else:
                         result = field.get_attribute(instance)
                         if hasattr(result,'all'):

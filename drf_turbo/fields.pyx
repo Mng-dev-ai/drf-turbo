@@ -205,14 +205,14 @@ cdef class Field :
             return self.initial()
         return self.initial
 
-    cpdef get_attribute(self, instance , attr=None):
+    cpdef get_attribute(self, instance , attrs=None):
         """
         Return the value of the field from the provided instance.
         """
         try:
-            if attr is None:
+            if attrs is None:
                 return get_attribute(instance, self.attrs)
-            return get_attribute(instance, attr)
+            return get_attribute(instance, attrs)
         except (KeyError, AttributeError) as exc:
             if self.default_value is not NO_DEFAULT:
                 return self.get_default_value()
@@ -221,8 +221,10 @@ cdef class Field :
             if not self.required:
                 raise SkipField()
             msg = (
-                'Got {exc_type} when attempting to get a value for field'.format(
+                'Got {exc_type} when attempting to get a value for field {field} on serializer {serializer}'.format(
                     exc_type=type(exc).__name__,
+                    field=self.field_name,
+                    serializer=self.root.__class__.__name__,
                 )
             )
             raise type(exc)(msg)
@@ -298,7 +300,7 @@ cdef class StrField(Field):
     default_error_messages = {
         'blank': 'May not be blank.',
         'invalid': 'Not a valid string.',
-        'null' : 'Null characters are not allowed.',
+        'null_chars' : 'Null characters are not allowed.',
         'min_length' : 'Must have at least {min_length} characters.',
         'max_length': 'Must have no more than {max_length} characters.',
 
@@ -328,7 +330,7 @@ cdef class StrField(Field):
             if len(data) > self.max_length:
                 raise self.raise_if_fail("max_length",max_length=self.max_length)
         if '\x00' in str(data):
-            raise self.raise_if_fail('null')
+            raise self.raise_if_fail('null_chars')
 
         data = str(data)
         return data.strip() if self.trim_whitespace else data

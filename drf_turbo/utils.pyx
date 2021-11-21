@@ -64,16 +64,7 @@ cpdef object get_attribute(object instance, list attrs):
                 instance = getattr(instance, attr)
         except ObjectDoesNotExist :
             return None
-
-        if callable(instance):
-            try:
-                instance = instance()
-            except (AttributeError, KeyError) as exc:
-                raise ValueError(
-                    "Unable to resolve attribute '%s' on %s: %s" % (
-                        attr, instance, exc
-                    )
-                )
+            
     return instance
 
     

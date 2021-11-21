@@ -41,7 +41,7 @@ setup(
     packages=find_packages(include=['drf_turbo', 'drf_turbo.*']),
     test_suite='tests',
     url='https://github.com/Mng-dev-ai/drf-turbo',
-    version='0.1.3',
+    version='0.1.5',
     zip_safe=False,
     ext_modules=cythonize(["drf_turbo/*.pyx"]),
 
