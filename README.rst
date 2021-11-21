@@ -13,10 +13,13 @@ drf-turbo
         :target: https://drf-turbo.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
 
-
 .. image:: https://pyup.io/repos/github/Mng-dev-ai/drf-turbo/shield.svg
      :target: https://pyup.io/repos/github/Mng-dev-ai/drf-turbo/
      :alt: Updates
+
+.. image:: https://pepy.tech/badge/drf-turbo/
+     :target: https://pepy.tech/project/drf-turbo/
+     :alt: Downloads
 
 
 

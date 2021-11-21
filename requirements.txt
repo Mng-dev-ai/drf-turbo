@@ -4,4 +4,3 @@ pyyaml
 uritemplate
 cython
 djangorestframework-simplejwt
-psycopg2-binary

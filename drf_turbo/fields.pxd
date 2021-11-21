@@ -28,7 +28,7 @@ cdef class Field :
     cpdef void bind(self,basestring name, object root)
     cpdef run_validation(self,object data,dict context)
     cpdef get_initial(self)
-    cpdef get_attribute(self, instance,attr=*)
+    cpdef get_attribute(self, instance,attrs=*)
     cpdef get_default_value(self)
     cpdef tuple validate_empty_values(self, data)
     cpdef long validate_or_raise(self,value) except -1
