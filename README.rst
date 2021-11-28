@@ -55,6 +55,11 @@ Installation
 
     $ pip install drf-turbo
 
+To install Cython on MacOS `via Brew <https://formulae.brew.sh/formula/cython>`_:
+
+.. code-block:: console
+
+    $ brew install cython
 
 Performance
 -----------
