@@ -22,15 +22,12 @@ drf-turbo
      :alt: Downloads
 
 
+Overview
+------------
+drf-turbo is a drop-in serializer for Django REST Framework (DRF). drf-turbo serializers run around 7.75 times faster
+than what what you get from DRF's packaged serializer.
 
-An alternative serializer implementation for REST framework written in cython built for speed.
-
-
-* Free software: MIT license
-* Documentation: https://drf-turbo.readthedocs.io.
-
-
-**NOTE**: Cython is required to build this package.
+**NOTE**: It is written in Cython, which is required to build this package.
 
 
 Requirements
@@ -487,3 +484,7 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+License
+------------
+* Free software: MIT license
