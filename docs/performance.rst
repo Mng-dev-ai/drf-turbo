@@ -2,8 +2,8 @@
 Performance Benchmarks
 **********************
 
-Using Pydantic's benchmarking code, drf-turbo performs serialization nearly *eight times faster* than a standard
-django-rest-framework configuration.
+Using Pydantic's benchmarking code, drf-turbo performs serialization, deserialization and validation nearly
+*eight times faster* than a standard django-rest-framework configuration.
 
 
 .. csv-table::
