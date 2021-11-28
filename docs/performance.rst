@@ -2,8 +2,21 @@
 Performance Benchmarks
 **********************
 
+Using Pydantic's benchmarking code, drf-turbo performs serialization nearly *eight times faster* than a standard
+django-rest-framework configuration.
 
-Using Pydantic's own benchmark :
+
+.. csv-table::
+       :header: "Package", "Version", "Relative Performance", "Mean Validation Time"
+
+        "drf-turbo","0.1.1","","113.79μs"
+        "django-rest-framework","3.12.4","7.78x slower","885.47μs"
+
+See `Pydantic benchmarking page <https://pydantic-docs.helpmanual.io/benchmarks/>`_ for more relative performance data
+and of the a link to the benchmarking code.
+
+
+Raw scores:
 ::
 
           drf-turbo best=111.754μs/iter avg=113.794μs/iter stdev=1.274μs/iter version=0.1.1
