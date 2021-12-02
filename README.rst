@@ -63,7 +63,7 @@ To install Cython on MacOS `via Brew <https://formulae.brew.sh/formula/cython>`_
 
 Performance
 -----------
-`drf-turbo` serialization performance averages 86% faster than DRF's standard serializer.
+`drf-turbo` serialization, deserialization and validation performance averages 86% faster than DRF's standard serializer.
 
 For more details, visit the `benchmarks section <https://drf-turbo.readthedocs.io/en/latest/performance.html>`_ of the docs.
 
