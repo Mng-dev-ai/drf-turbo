@@ -22,15 +22,12 @@ drf-turbo
      :alt: Downloads
 
 
+Overview
+------------
+drf-turbo is a drop-in serializer for Django REST Framework (DRF). drf-turbo serializers run around 7.75 times faster
+than what what you get from DRF's packaged serializer.
 
-An alternative serializer implementation for REST framework written in cython built for speed.
-
-
-* Free software: MIT license
-* Documentation: https://drf-turbo.readthedocs.io.
-
-
-**NOTE**: Cython is required to build this package.
+**NOTE**: It is written in Cython, which is required to build this package.
 
 
 Requirements
@@ -58,12 +55,23 @@ Installation
 
     $ pip install drf-turbo
 
+To install Cython on MacOS `via Brew <https://formulae.brew.sh/formula/cython>`_:
+
+.. code-block:: console
+
+    $ brew install cython
 
 Performance
 -----------
+`drf-turbo` serialization, deserialization and validation performance averages 86% faster than DRF's standard serializer.
 
-https://drf-turbo.readthedocs.io/en/latest/performance.html
+For more details, visit the `benchmarks section <https://drf-turbo.readthedocs.io/en/latest/performance.html>`_ of the docs.
 
+Documentation & Support
+-----------
+Documentation for the project is available at https://drf-turbo.readthedocs.io.
+
+For questions and support, use github issues
 
 Examples
 ========
@@ -180,7 +188,7 @@ Nested Serializers
         email = dt.EmailField()
         created = dt.DateTimeField()
 
-    class Profile : 
+    class Profile :
         def __init__(self, age=25):
             self.age = age
             self.user = user
@@ -192,13 +200,13 @@ Nested Serializers
         age = dt.IntField()
         user = UserSerializer()
 
-    
+
     serializer = ProfileSerializer(profile)
     serializer.data
 
     # {'age' : 25 , 'user' : {'username': 'test', 'email': 'test@example.com', 'created': '2021-11-04T22:49:01.981127Z'}}
 
-    
+
 Filtering Output
 ----------------
 
@@ -208,15 +216,15 @@ drf-turbo provides option to enclude or exclude fields from serializer using ``o
 
     serializer = UserSerializer(user,only=('id','username'))
 
-    or 
+    or
 
     serializer = ProfileSerializer(profile,exclude=('id','user__email'))
 
-    or 
+    or
 
     http://127.0.0.1:8000/user/?only=id,username
 
-    
+
 Required Fields
 ---------------
 
@@ -256,7 +264,7 @@ ModelSerializer
 
 Mapping serializer to Django model definitions.
 
-Features : 
+Features :
 
     * It will automatically generate a set of fields for you, based on the model.
     * It will automatically generate validators for the serializer.
@@ -266,7 +274,7 @@ Features :
 
     class UserSerializer(dt.ModelSerializer):
 
-        class Meta : 
+        class Meta :
             model = User
             fields = ('id','username','email')
 
@@ -278,7 +286,7 @@ For example:
 
     class UserSerializer(dt.ModelSerializer):
 
-        class Meta : 
+        class Meta :
             model = User
             fields = '__all__'
 
@@ -290,10 +298,10 @@ For example:
 
     class UserSerializer(dt.ModelSerializer):
 
-        class Meta : 
+        class Meta :
             model = User
             exclude = ('email',)
-    
+
 
 Read&Write only fields
 ----------------------
@@ -320,7 +328,7 @@ Allow only requests with JSON content, instead of the default of JSON or form da
         ]
     }
 
-    or 
+    or
 
     REST_FRAMEWORK = {
         'DEFAULT_PARSER_CLASSES': [
@@ -328,7 +336,7 @@ Allow only requests with JSON content, instead of the default of JSON or form da
         ]
     }
 
-    or 
+    or
 
     REST_FRAMEWORK = {
         'DEFAULT_PARSER_CLASSES': [
@@ -336,7 +344,7 @@ Allow only requests with JSON content, instead of the default of JSON or form da
         ]
     }
 
-**NOTE**: ujson must be installed to use UJSONParser.   
+**NOTE**: ujson must be installed to use UJSONParser.
 
 **NOTE**: orjson must be installed to use ORJSONParser.
 
@@ -372,7 +380,7 @@ Use JSON as the main media type.
         ]
     }
 
-**NOTE**: ujson must be installed to use UJSONRenderer.   
+**NOTE**: ujson must be installed to use UJSONRenderer.
 
 **NOTE**: orjson must be installed to use ORJSONRenderer.
 
@@ -393,7 +401,7 @@ An ``HttpResponse`` subclass that helps to create a JSON-encoded response. Its d
             data = {"username":"test"}
             return dt.JsonResponse(data,status=200)
 
-    or 
+    or
 
     class UserInfo(APIView):
         def get(self,request):
@@ -407,14 +415,14 @@ An ``HttpResponse`` subclass that helps to create a JSON-encoded response. Its d
             data = {"username":"test"}
             return dt.ORJSONResponse(data,status=200)
 
-**NOTE**: ujson must be installed to use UJSONResponse.   
+**NOTE**: ujson must be installed to use UJSONResponse.
 
 **NOTE**: orjson must be installed to use ORJSONResponse.
 
-    
+
 Also drf-turbo provides an easy way to return a success or error response using ``SuccessResponse`` or ``ErrorResponse`` clasess.
 
-for example : 
+for example :
 
 .. code:: python
 
@@ -425,7 +433,7 @@ for example :
             if not serializer.is_valid():
                 return dt.ErrorResponse(serializer.errors)
                  # returned response :  {'message':'Bad request', data : ``serializer_errros``, 'error': True} with status = 400
-            return dt.SuccessResponse(data)     
+            return dt.SuccessResponse(data)
             # returned response :  {'message':'Success', data : {"username":"test"} , 'error': False} with status = 200
 
 
@@ -462,7 +470,7 @@ and finally add these lines in ``urls.py``
     from django.views.generic import TemplateView
     from rest_framework.schemas import get_schema_view as schema_view
     from drf_turbo.openapi import SchemaGenerator
-    
+
     urlpatterns = [
         # YOUR PATTERNS
  	path('openapi', schema_view(
@@ -477,7 +485,7 @@ and finally add these lines in ``urls.py``
             extra_context={'schema_url':'openapi-schema'}
         ), name='swagger-ui'),
     ]
-    
+
 Now go to http://127.0.0.1:8000/docs
 
 Credits
@@ -487,3 +495,7 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+License
+------------
+* Free software: MIT license
