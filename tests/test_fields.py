@@ -4,7 +4,7 @@ import pytest
 import uuid
 from decimal import  Decimal
 import datetime
-from django.utils.timezone import utc
+from datetime import timezone
 from rest_framework.test import  APISimpleTestCase
 from django.core.exceptions import ObjectDoesNotExist
 
@@ -383,11 +383,11 @@ class TestDateTimeField(FieldValues):
     Valid and invalid values for `DateTimeField`.
     """
     valid_inputs = {
-        '2001-01-01 13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc),
-        '2001-01-01T13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc),
-        '2001-01-01T13:00Z': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc),
-        datetime.datetime(2001, 1, 1, 13, 00): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc),
-        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc),
+        '2001-01-01 13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc),
+        '2001-01-01T13:00': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc),
+        '2001-01-01T13:00Z': datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc),
+        datetime.datetime(2001, 1, 1, 13, 00): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc),
+        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc): datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc),
     }
     invalid_inputs = {
         'abc': ['Not a valid datetime.'],
@@ -398,26 +398,26 @@ class TestDateTimeField(FieldValues):
     }
     outputs = {
         datetime.datetime(2001, 1, 1, 13, 00): '2001-01-01T13:00:00Z',
-        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=utc): '2001-01-01T13:00:00Z',
+        datetime.datetime(2001, 1, 1, 13, 00, tzinfo=timezone.utc): '2001-01-01T13:00:00Z',
         '2001-01-01T00:00:00': '2001-01-01T00:00:00',
         str('2016-01-10T00:00:00'): '2016-01-10T00:00:00',
         None: None,
         '': None,
     }
-    field = dt.DateTimeField(default_timezone=utc)
+    field = dt.DateTimeField(default_timezone=timezone.utc)
     
 class TestCustomInputFormatDateTimeField(FieldValues):
     """
     Valid and invalid values for `DateTimeField` with a custom input format.
     """
     valid_inputs = {
-        '1:35pm, 1 Jan 2001': datetime.datetime(2001, 1, 1, 13, 35, tzinfo=utc),
+        '1:35pm, 1 Jan 2001': datetime.datetime(2001, 1, 1, 13, 35, tzinfo=timezone.utc),
     }
     invalid_inputs = {
         '2001-01-01T20:50': ['Not a valid datetime.']
     }
     outputs = {}
-    field = dt.DateTimeField(default_timezone=utc, input_formats=['%I:%M%p, %d %b %Y'])
+    field = dt.DateTimeField(default_timezone=timezone.utc, input_formats=['%I:%M%p, %d %b %Y'])
 
 
 class TestCustomOutputFormatDateTimeField(FieldValues):

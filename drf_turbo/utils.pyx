@@ -1,4 +1,4 @@
-#cython: language_level=3, boundscheck=False, wraparound=False, initializedcheck=False, cdivision=True
+#cython: language_level=3
 
 import collections
 from django.core.exceptions import ObjectDoesNotExist
@@ -6,7 +6,7 @@ from django.core.exceptions import ObjectDoesNotExist
 
 cpdef bint is_iterable_and_not_string(arg):
     return (
-        isinstance(arg, collections.Iterable) 
+        isinstance(arg, collections.abc.Iterable) 
         and not isinstance(arg, str)
     )
     
