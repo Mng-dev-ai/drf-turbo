@@ -6,7 +6,7 @@ from drf_turbo.exceptions import ValidationError
 
 __author__ = """Michael Gendy"""
 __email__ = 'mngback@gmail.com'
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 __all__ = [
     'BaseSerializer',
