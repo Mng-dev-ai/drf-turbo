@@ -17,7 +17,7 @@ drf-turbo
      :target: https://pyup.io/repos/github/Mng-dev-ai/drf-turbo/
      :alt: Updates
 
-.. image:: https://pepy.tech/badge/drf-turbo/
+.. image:: https://static.pepy.tech/personalized-badge/drf-turbo?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads
      :target: https://pepy.tech/project/drf-turbo/
      :alt: Downloads
 
