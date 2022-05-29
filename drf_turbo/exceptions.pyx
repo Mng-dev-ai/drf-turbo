@@ -1,3 +1,5 @@
+# cython: language_level=3
+
 from drf_turbo.utils import get_execption_detail
 
 cdef class DrfTurboException(Exception):
@@ -40,9 +42,3 @@ class StringNotCollectionError(DrfTurboException,TypeError):
 
 class OnlyAndExcludeError(DrfTurboException):
     pass
-
-            
-class ParseError(DrfTurboException):
-    status_code = 400
-    default_detail = 'Malformed request.'
-    default_code = 'parse_error'

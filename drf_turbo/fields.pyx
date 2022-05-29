@@ -1,3 +1,5 @@
+# cython: language_level=3
+
 cimport cython
 
 from drf_turbo.utils import is_iterable_and_not_string,get_error_detail,is_collection,get_attribute,force_str

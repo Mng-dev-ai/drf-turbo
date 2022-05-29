@@ -1,8 +1,4 @@
 # cython: language_level=3
-# cython: embedsignature=True
-# cython: wraparound=False
-# cython: nonecheck=False
-# cython: boundscheck=False
 
 from django.utils.functional import cached_property
 from drf_turbo.fields cimport Field,RelatedField,SkipField,NO_DEFAULT
