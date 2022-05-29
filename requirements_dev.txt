@@ -1,1 +1,2 @@
-pytest
+pytest>=7.1.2
+cython>=0.29.30

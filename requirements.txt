@@ -1,6 +1,6 @@
-forbiddenfruit
-djangorestframework
-pyyaml
-uritemplate
-cython
-djangorestframework-simplejwt
+forbiddenfruit>=0.1.4
+djangorestframework>=3.12.4
+pyyaml>=5.3.1,<5.4 
+uritemplate>=4.1.1
+cython>=0.29.30
+djangorestframework-simplejwt>=5.2.0
