@@ -10,4 +10,4 @@ Development Lead
 Contributors
 ------------
 
-None yet. Why not be the first?
+* Rob Banagale `@banagale <https://github.com/banagale>`_

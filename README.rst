@@ -68,7 +68,7 @@ Performance
 For more details, visit the `benchmarks section <https://drf-turbo.readthedocs.io/en/latest/performance.html>`_ of the docs.
 
 Documentation & Support
------------
+-----------------------
 Documentation for the project is available at https://drf-turbo.readthedocs.io.
 
 For questions and support, use github issues
