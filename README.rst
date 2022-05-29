@@ -5,21 +5,15 @@ drf-turbo
 
 .. image:: https://img.shields.io/pypi/v/drf-turbo.svg
         :target: https://pypi.python.org/pypi/drf-turbo
-
-.. image:: https://img.shields.io/travis/Mng-dev-ai/drf-turbo.svg
-        :target: https://travis-ci.com/Mng-dev-ai/drf-turbo
+        :alt: Version
 
 .. image:: https://readthedocs.org/projects/drf-turbo/badge/?version=latest
         :target: https://drf-turbo.readthedocs.io/en/latest/?version=latest
         :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/Mng-dev-ai/drf-turbo/shield.svg
-     :target: https://pyup.io/repos/github/Mng-dev-ai/drf-turbo/
-     :alt: Updates
-
 .. image:: https://static.pepy.tech/personalized-badge/drf-turbo?period=total&units=international_system&left_color=black&right_color=green&left_text=Downloads
-     :target: https://pepy.tech/project/drf-turbo/
-     :alt: Downloads
+        :target: https://pepy.tech/project/drf-turbo/
+        :alt: Downloads
 
 
 Overview
