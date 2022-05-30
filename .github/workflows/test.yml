@@ -7,7 +7,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.8","3.9"]
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
@@ -25,3 +25,6 @@ jobs:
 
       - name: Run tests
         run: python runtests.py
+
+      - name: Run linting checks
+        run: bash scripts/check

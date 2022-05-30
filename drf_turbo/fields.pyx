@@ -1,22 +1,26 @@
 # cython: language_level=3
 
-cimport cython
+import copy
+import datetime
+import decimal
+import ipaddress
+import json
+import re
+import uuid
 
-from drf_turbo.utils import is_iterable_and_not_string,get_error_detail,is_collection,get_attribute,force_str
-from drf_turbo.exceptions import *
-from django.core.exceptions import ValidationError as DjangoValidationError
-import ipaddress,copy,json,uuid,decimal,re,datetime
-from django.core.exceptions import ObjectDoesNotExist
-from django.utils.dateparse import (
-    parse_date, parse_datetime, parse_time
-)
-from rest_framework.settings import api_settings
-from rest_framework import (
-    ISO_8601
-)
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime, parse_time
 from pytz.exceptions import InvalidTimeError
+from rest_framework import ISO_8601
+from rest_framework.settings import api_settings
+
+from drf_turbo.exceptions import *
+from drf_turbo.utils import (force_str, get_attribute, get_error_detail,
+                             is_collection, is_iterable_and_not_string)
+cimport cython
 
 EMAIL_REGEX = re.compile(
     r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*"
@@ -32,7 +36,7 @@ URL_REGEX = re.compile(
     r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
     r'(?::\d+)?'  # optional port
     r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-    
+
 
 cdef object NO_DEFAULT = object()
 
@@ -50,18 +54,18 @@ cdef class Field :
 
     :param str attr:  The name of the attribute to get the value from when serializing.
     :param bool call: Whether the value should be called after it is retrieved
-        from the object. Useful if an object has a method to be serialized. 
+        from the object. Useful if an object has a method to be serialized.
     :param bool required: Raise a `ValidationError` if the field value
-        is not supplied during deserialization.      
+        is not supplied during deserialization.
     :param bool write_only: If `True` skip this field during serialization, otherwise
-        its value will be present in the serialized data.      
+        its value will be present in the serialized data.
     :param bool read_only: If `True` skip this field during deserialization, otherwise
-        its value will be present in the deserialized object.  
+        its value will be present in the deserialized object.
     :param str label: A label to use as the name of the serialized field
-        instead of using the attribute name of the field.   
-    :param list validators: A list of validators to apply against incoming data during deserialization.     
-    :param str field_name: The name of field.  
-    :param str root: The root(parent) of field.   
+        instead of using the attribute name of the field.
+    :param list validators: A list of validators to apply against incoming data during deserialization.
+    :param str field_name: The name of field.
+    :param str root: The root(parent) of field.
     :param default_value: Default value to be used during serialization and deserialization.
     :param initial: The initial value for the field.
     """
@@ -70,28 +74,27 @@ cdef class Field :
     default_error_messages = {
         'required': 'This field is required.',
         'null': 'This field may not be null.',
-        }
+    }
     _initial = None
 
     def __init__(
         self,
-        basestring attr = None,
-        bint call= False,
-        bint required= True,
-        bint write_only = False,
-        bint read_only = False,
-        bint allow_null = False,
-        basestring label = None,
-        basestring help_text = None,
-        dict style = None ,
-        object validators = None,
-        object default_value  = NO_DEFAULT,
-        object initial = NO_DEFAULT,
-        basestring field_name = None,
-        object root = None ,
-        dict error_messages = None,
-        
-    ): 
+        basestring attr=None,
+        bint call=False,
+        bint required=True,
+        bint write_only=False,
+        bint read_only=False,
+        bint allow_null=False,
+        basestring label=None,
+        basestring help_text=None,
+        dict style=None,
+        object validators=None,
+        object default_value=NO_DEFAULT,
+        object initial=NO_DEFAULT,
+        basestring field_name=None,
+        object root=None,
+        dict error_messages=None,
+    ):
         required = False if default_value is not NO_DEFAULT else required
         assert not (read_only and write_only), 'May not set both `read_only` and `write_only`'
         assert not (required and default_value is not NO_DEFAULT), 'May not set both `required` and `default_value`'
@@ -100,8 +103,7 @@ cdef class Field :
         self.call = call
         self.required = required
         self.write_only = write_only
-        self.read_only = (read_only or call or
-                          (attr is not None and '.' in attr)) # type: ignore
+        self.read_only = (read_only or call or (attr is not None and '.' in attr))  # type: ignore
         self.allow_null = allow_null
         self.label = label
         self.default_value = default_value
@@ -140,8 +142,7 @@ cdef class Field :
             msg = msg.format(**kwargs)
         return ValidationError(msg)
 
-        
-    cpdef serialize(self,value, dict context):
+    cpdef serialize(self, value, dict context):
         """
         Transform the *outgoing* native value into primitive data
 
@@ -149,19 +150,17 @@ cdef class Field :
         :param context: The context for the request.
         """
         return value
-    
-    
-    cpdef deserialize(self,data, dict context):
+
+    cpdef deserialize(self, data, dict context):
         """
         Transform the *incoming* primitive data into a native value.
-        
+
         :param data: The incoming data.
         :param context: The context for the request.
         """
         return data
-    
 
-    cpdef method_getter(self,field_name, root) :
+    cpdef method_getter(self, field_name, root) :
         """
         Returns a function that fetches an attribute from an object.
 
@@ -169,9 +168,8 @@ cdef class Field :
         :root: The root of the field.
         """
         return None
-        
-        
-    cpdef void bind(self,basestring field_name, object root):
+
+    cpdef void bind(self, basestring field_name, object root):
         """
         Update the field name and root for the field instance.
 
@@ -187,7 +185,6 @@ cdef class Field :
             self.attr = field_name
 
         self.attrs = self.attr.split('.') if self.attr else []
-
 
     cpdef get_default_value(self):
         """
@@ -257,7 +254,7 @@ cdef class Field :
 
         return (False, data)
 
-    cpdef run_validation(self,object data,dict context) :
+    cpdef run_validation(self, object data, dict context) :
         """
         Validate an input data.
         """
@@ -265,78 +262,73 @@ cdef class Field :
         (is_empty_value, data) = self.validate_empty_values(data)
         if is_empty_value:
             return data
-        value = self.deserialize(data,context)
+        value = self.deserialize(data, context)
         self.validate_or_raise(value)
         return value
-    
-    
-    cpdef long validate_or_raise(self,value) except -1 :
+
+    cpdef long validate_or_raise(self, value) except -1 :
         """
         Validate the value and raise a `ValidationError` if validation fails.
         """
-
         cdef list errors = []
         for validator in self.validators :
             try :
                 validator(value)
             except ValidationError as exc:
                 if isinstance(exc.detail, dict):
-                    raise   
+                    raise
                 errors.extend(exc.detail)
             except DjangoValidationError as exc:
                 errors.extend(get_error_detail(exc))
         if errors:
             raise ValidationError(errors)
-        
-        
 
-
-        
 cdef class StrField(Field):
     """"
     A field that validates input as an string.
 
     :param kwargs: The same keyword arguments that :class:`Field` receives.
     """
-    
+
     default_error_messages = {
         'blank': 'May not be blank.',
         'invalid': 'Not a valid string.',
         'null_chars' : 'Null characters are not allowed.',
         'min_length' : 'Must have at least {min_length} characters.',
         'max_length': 'Must have no more than {max_length} characters.',
-
-    }    
+    }
     _initial = ''
-    def __init__(self,**kwargs) :
+
+    def __init__(self, **kwargs) :
         self.allow_blank = kwargs.pop('allow_blank', False)
         self.trim_whitespace = kwargs.pop('trim_whitespace', True)
         self.max_length = kwargs.pop('max_length', None)
         self.min_length = kwargs.pop('min_length', None)
         super().__init__(**kwargs)
-         
-    cpdef serialize(self,value,dict context) :
+
+    cpdef serialize(self, value, dict context) :
         return str(value)
 
-    cpdef deserialize(self,data,dict context) :
+    cpdef deserialize(self, data, dict context) :
         if data == '' or (self.trim_whitespace and str(data).strip() == ''):
             if not self.allow_blank:
                 raise self.raise_if_fail('blank')
         if isinstance(data, bool) or not isinstance(data, (str, int, float,)):
-           raise self.raise_if_fail('invalid')
+            raise self.raise_if_fail('invalid')
 
         if self.min_length is not None:
             if len(data) < self.min_length:
-                raise self.raise_if_fail("min_length",min_length=self.min_length)
+                raise self.raise_if_fail("min_length", min_length=self.min_length)
         if self.max_length is not None:
             if len(data) > self.max_length:
-                raise self.raise_if_fail("max_length",max_length=self.max_length)
+                raise self.raise_if_fail("max_length", max_length=self.max_length)
         if '\x00' in str(data):
             raise self.raise_if_fail('null_chars')
 
         data = str(data)
         return data.strip() if self.trim_whitespace else data
-    
+
+
 @cython.final
 cdef class EmailField(StrField):
     """
@@ -349,16 +341,17 @@ cdef class EmailField(StrField):
     default_error_messages = {
         'invalid': 'Enter a valid email address.'
     }
-    def __init__(self, **kwargs): 
+
+    def __init__(self, **kwargs):
         self.to_lower = kwargs.pop('to_lower', False)
         super().__init__(**kwargs)
-        
-    cpdef inline serialize(self,value,dict context):
+
+    cpdef inline serialize(self, value, dict context):
         if self.to_lower :
             return value.lower()
         return value
-    
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         match = EMAIL_REGEX.match(data)
         if not match:
             raise self.raise_if_fail("invalid")
@@ -366,6 +359,7 @@ cdef class EmailField(StrField):
         if self.to_lower :
             return data.lower()
         return data
+
 
 @cython.final
 cdef class URLField(StrField):
@@ -379,14 +373,13 @@ cdef class URLField(StrField):
         'invalid': 'Enter a valid URL.'
     }
 
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         match = URL_REGEX.match(data)
         if not match:
             raise self.raise_if_fail("invalid")
         data = str(data)
-        return data 
+        return data
 
-    
 
 @cython.final
 cdef class RegexField(StrField):
@@ -404,9 +397,9 @@ cdef class RegexField(StrField):
     def __init__(self, regex, **kwargs):
         self.regex = regex
         super().__init__(**kwargs)
-        
-    cpdef inline deserialize(self,data,dict context):
-        compiled = re.compile(self.regex,flags=0)
+
+    cpdef inline deserialize(self, data, dict context):
+        compiled = re.compile(self.regex, flags=0)
         match = compiled.search(str(data))
         if not match:
             raise self.raise_if_fail("invalid")
@@ -424,13 +417,14 @@ cdef class IPField(StrField):
     default_error_messages = {
         'invalid': 'Enter a valid IPv4 or IPv6 address.',
     }
-        
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         try:
-           return ipaddress.ip_address(data)
+            return ipaddress.ip_address(data)
         except (ValueError, TypeError) :
             raise self.raise_if_fail('invalid')
-        
+
+
 @cython.final
 cdef class PasswordField(StrField):
     """
@@ -439,7 +433,7 @@ cdef class PasswordField(StrField):
     :param kwargs: The same keyword arguments that :class:`Field` receives.
     """
 
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         kwargs['write_only'] = True
         kwargs['min_length'] = 4
         kwargs['required'] = True
@@ -455,11 +449,10 @@ cdef class UUIDField(StrField):
     """
 
     default_error_messages = {
-        
         "invalid": "Not a valid UUID."
     }
 
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         if data is None:
             return None
         if isinstance(data, uuid.UUID):
@@ -467,14 +460,15 @@ cdef class UUIDField(StrField):
         try:
             if isinstance(data, bytes) and len(data) == 16:
                 return uuid.UUID(bytes=data)
-            elif isinstance(data,int):
+            elif isinstance(data, int):
                 return uuid.UUID(int=data)
-            elif isinstance(data,str):
+            elif isinstance(data, str):
                 return uuid.UUID(hex=data)
             else:
                 return uuid.UUID(data)
-        except :
+        except Exception:
             raise self.raise_if_fail('invalid')
+
 
 @cython.final
 cdef class SlugField(Field):
@@ -493,18 +487,19 @@ cdef class SlugField(Field):
         self.allow_unicode = allow_unicode
         super().__init__(**kwargs)
 
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         if self.allow_unicode :
             regex = re.compile(r'^[-\w]+\Z', re.UNICODE)
         else:
             regex = re.compile(r'^[-a-zA-Z0-9_]+$')
-        compiled = re.compile(regex,flags=0)
+        compiled = re.compile(regex, flags=0)
         match = compiled.search(str(data))
         if not match and not self.allow_unicode:
             raise self.raise_if_fail("invalid")
         elif not match and self.allow_unicode:
             raise self.raise_if_fail("invalid_unicode")
         return str(data)
+
 
 @cython.final
 cdef class IntField(Field):
@@ -521,25 +516,27 @@ cdef class IntField(Field):
         'max_value': 'Must be less than or equal to {max_value}.',
     }
     re_decimal = re.compile(r'\.0*\s*$')  # allow e.g. '1.0' as an int, but not '1.2'
-    def __init__(self,**kwargs):
+
+    def __init__(self, **kwargs):
         self.max_value = kwargs.pop('max_value', None)
         self.min_value = kwargs.pop('min_value', None)
         super().__init__(**kwargs)
-        
-    cpdef inline serialize(self,value,dict context):
+
+    cpdef inline serialize(self, value, dict context):
         return int(value)
 
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         try:
             data = int(self.re_decimal.sub('', str(data)))
         except (ValueError, TypeError):
             raise self.raise_if_fail('invalid')
         if self.min_value is not None and data < self.min_value:
-            raise self.raise_if_fail("min_value",min_value=self.min_value)
+            raise self.raise_if_fail("min_value", min_value=self.min_value)
         if self.max_value is not None and data > self.max_value:
-            raise self.raise_if_fail("max_value",max_value=self.max_value)
+            raise self.raise_if_fail("max_value", max_value=self.max_value)
 
         return data
+
 
 @cython.final
 cdef class FloatField(Field):
@@ -555,29 +552,27 @@ cdef class FloatField(Field):
         'invalid': 'A valid number is required.',
         'min_value': 'Must be greater than or equal to {min_value}.',
         'max_value': 'Must be less than or equal to {max_value}.',
-
     }
-    
-    def __init__(self,**kwargs):
+
+    def __init__(self, **kwargs):
         self.max_value = kwargs.pop('max_value', None)
         self.min_value = kwargs.pop('min_value', None)
         super().__init__(**kwargs)
 
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         return float(value)
-    
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         try:
-            data =  float(data)
+            data = float(data)
         except (TypeError, ValueError):
-           raise self.raise_if_fail('invalid')
-
+            raise self.raise_if_fail('invalid')
         if self.min_value is not None and data < self.min_value:
-            raise self.raise_if_fail("min_value",min_value=self.min_value)
+            raise self.raise_if_fail("min_value", min_value=self.min_value)
         if self.max_value is not None and data > self.max_value:
-            raise self.raise_if_fail("max_value",max_value=self.max_value)
-
+            raise self.raise_if_fail("max_value", max_value=self.max_value)
         return data
+
 
 @cython.final
 cdef class DecimalField(Field):
@@ -604,7 +599,16 @@ cdef class DecimalField(Field):
     }
     MAX_STRING_LENGTH = 1000  # Guard against malicious string inputs.
 
-    def __init__(self, max_digits, decimal_places, max_value=None, min_value=None,coerce_to_string=None,rounding=None,**kwargs):
+    def __init__(
+        self,
+        max_digits,
+        decimal_places,
+        max_value=None,
+        min_value=None,
+        coerce_to_string=None,
+        rounding=None,
+        **kwargs
+    ):
         self.max_digits = max_digits
         self.decimal_places = decimal_places
         self.max_value = max_value
@@ -613,70 +617,52 @@ cdef class DecimalField(Field):
             self.max_whole_digits = self.max_digits - self.decimal_places
         else:
             self.max_whole_digits = None
-
         if coerce_to_string is None:
             self.coerce_to_string = api_settings.COERCE_DECIMAL_TO_STRING
         else:
             self.coerce_to_string = coerce_to_string
-
         super().__init__(**kwargs)
-      
         if rounding is not None:
             valid_roundings = [v for k, v in vars(decimal).items() if k.startswith('ROUND_')]
             assert rounding in valid_roundings, (
                 'Invalid rounding option %s. Valid values for rounding are: %s' % (rounding, valid_roundings))
         self.rounding = rounding
 
-
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if value is None:
             if self.coerce_to_string:
                 return ''
             else:
                 return None
-
         if not isinstance(value, decimal.Decimal):
             value = decimal.Decimal(str(value).strip())
 
         quantized = self.quantize(value)
         if not self.coerce_to_string:
             return quantized
-
         return '{:f}'.format(quantized)
 
-      
-
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         """
-        Validate that the input is a decimal number and return a Decimal
-        instance.
+        Validate that the input is a decimal number and return a Decimal instance.
         """
-
-        data = force_str(data).strip()    
-
+        data = force_str(data).strip()
         if data == '' and self.allow_null:
             return None
-
         if len(data) > self.MAX_STRING_LENGTH:
             raise self.raise_if_fail('max_string_length')
-
         try:
             value = decimal.Decimal(data)
         except decimal.DecimalException:
             raise self.raise_if_fail('invalid')
-
         if value.is_nan():
             raise self.raise_if_fail('invalid')
-
         if value in (decimal.Decimal('Inf'), decimal.Decimal('-Inf')):
             raise self.raise_if_fail('invalid')
-
         if self.min_value is not None and value < self.min_value:
-            raise self.raise_if_fail("min_value",min_value=self.min_value)
-
+            raise self.raise_if_fail("min_value", min_value=self.min_value)
         if self.max_value is not None and value > self.max_value:
-            raise self.raise_if_fail("max_value",max_value=self.max_value)
-
+            raise self.raise_if_fail("max_value", max_value=self.max_value)
         return self.quantize(self.validate_precision(value))
 
     cdef inline validate_precision(self, value):
@@ -705,7 +691,7 @@ cdef class DecimalField(Field):
             decimal_places = total_digits
 
         if self.max_digits is not None and total_digits > self.max_digits:
-           raise self.raise_if_fail('max_digits', max_digits=self.max_digits)
+            raise self.raise_if_fail('max_digits', max_digits=self.max_digits)
         if self.decimal_places is not None and decimal_places > self.decimal_places:
             raise self.raise_if_fail('max_decimal_places', max_decimal_places=self.decimal_places)
         if self.max_whole_digits is not None and whole_digits > self.max_whole_digits:
@@ -745,43 +731,43 @@ cdef class BoolField(Field):
         "true": True,
         "True": True,
         "TRUE": True,
-        't' : True,
-        "T" : True,
+        't': True,
+        "T": True,
         "on": True,
         "1": True,
-        True : True,
+        True: True,
         1: True,
         "off": False,
-        "f" : False,
-        "F" : False,
+        "f": False,
+        "F": False,
         "false": False,
-        "False":False,
-        "FALSE" : False,
+        "False": False,
+        "FALSE": False,
         "0": False,
         "": False,
-        False : False,
+        False: False,
         0: False,
     }
-    coerce_null_values = {"", "null","Null","NULL","none","None","NONE"}
-        
-    cpdef inline serialize(self,value,dict context):
+    coerce_null_values = {"", "null", "Null", "NULL", "none", "None", "NONE"}
+
+    cpdef inline serialize(self, value, dict context):
         try:
             if self.allow_null and value in self.coerce_null_values:
                 return None
             value = self.coerce_values[value]
-        except (KeyError,TypeError):
+        except (KeyError, TypeError):
             pass
         return bool(value)
-    
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         try:
             if self.allow_null and data in self.coerce_null_values:
                 return None
             data = self.coerce_values[data]
-        except (KeyError,TypeError):
+        except (KeyError, TypeError):
             raise self.raise_if_fail('invalid')
         return data
-    
+
 cdef class ChoiceField(Field):
     """
     Choice field type.
@@ -794,7 +780,6 @@ cdef class ChoiceField(Field):
     }
 
     def __init__(self, choices, **kwargs):
-        
         pairs = [
             isinstance(item, (list, tuple)) and len(item) == 2
             for item in choices
@@ -807,33 +792,29 @@ cdef class ChoiceField(Field):
         self.choice_strings_to_values = dict([
             (str(key), key) for key in self.choices.keys()
         ])
-        
-        self.choice_strings_to_display = dict([
-            (str(key), value) for key,value in self.choices.items()
-        ])
 
+        self.choice_strings_to_display = dict([
+            (str(key), value) for key, value in self.choices.items()
+        ])
 
         self.allow_blank = kwargs.pop('allow_blank', False)
         super().__init__(**kwargs)
 
-        
-        
-    cpdef serialize(self,value,dict context):
+    cpdef serialize(self, value, dict context):
         if value in ('', None):
             return value
-        
+
         return {
             'value': self.choice_strings_to_values.get(str(value), value),
             'display': self.choice_strings_to_display.get(str(value), value),
         }
 
-        
-    cpdef deserialize(self,data,dict context) :
+    cpdef deserialize(self, data, dict context) :
         if data == '' and self.allow_blank:
             return ''
         try:
             return self.choice_strings_to_values[str(data)]
-        except:
+        except Exception:
             raise self.raise_if_fail('invalid_choice', input=data)
 
 
@@ -855,13 +836,12 @@ cdef class MultipleChoiceField(ChoiceField):
         self.allow_empty = kwargs.pop('allow_empty', True)
         super().__init__(**kwargs)
 
-
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         return {
             self.choice_strings_to_values.get(str(item), item) for item in value
         }
 
-    cpdef inline deserialize(self,data,dict context) :
+    cpdef inline deserialize(self, data, dict context) :
         if isinstance(data, str) or not hasattr(data, '__iter__'):
             raise self.raise_if_fail('not_a_list', input_type=type(data).__name__)
         if not self.allow_empty and len(data) == 0:
@@ -873,17 +853,15 @@ cdef class MultipleChoiceField(ChoiceField):
                 return ''
             try:
                 new_data.add(self.choice_strings_to_values[str(item)])
-            except:
+            except Exception:
                 raise self.raise_if_fail('invalid_choice', input=item)
         return new_data
-
-
 
 
 @cython.final
 cdef class DateTimeField(Field):
     """
-    A field that (de)serializes to a :class:`datetime.datetime` object. 
+    A field that (de)serializes to a :class:`datetime.datetime` object.
 
     :param format: The format to use when serializing/deserializing.
     :param input_formats: A list of formats to check for when deserializing input.
@@ -893,12 +871,12 @@ cdef class DateTimeField(Field):
     default_error_messages = {
         'invalid': 'Not a valid datetime.',
         'date': 'Expected a datetime but got a date.',
-        'make_aware':'Invalid datetime for the timezone "{timezone}".',
+        'make_aware': 'Invalid datetime for the timezone "{timezone}".',
         'overflow': 'Datetime value out of range.'
-    }       
-    datetime_parser = datetime.datetime.strptime 
+    }
+    datetime_parser = datetime.datetime.strptime
 
-    def __init__(self, format=NO_DEFAULT,input_formats=None,default_timezone=None,**kwargs):
+    def __init__(self, format=NO_DEFAULT, input_formats=None, default_timezone=None, **kwargs):
         if format is NO_DEFAULT:
             self.format = api_settings.DATETIME_FORMAT
         else:
@@ -918,7 +896,6 @@ cdef class DateTimeField(Field):
     cpdef inline get_default_timezone(self):
         return timezone.get_current_timezone() if settings.USE_TZ else None
 
-
     cpdef inline enforce_timezone(self, value):
         """
         When `self.default_timezone` is `None`, always return naive datetimes.
@@ -929,7 +906,7 @@ cdef class DateTimeField(Field):
                 try:
                     return value.astimezone(self.timezone)
                 except OverflowError:
-                   raise self.raise_if_fail('overflow')
+                    raise self.raise_if_fail('overflow')
             try:
                 return timezone.make_aware(value, self.timezone)
             except InvalidTimeError:
@@ -938,8 +915,7 @@ cdef class DateTimeField(Field):
             return timezone.make_naive(value, timezone.utc)
         return value
 
-
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if not value:
             return None
 
@@ -955,10 +931,7 @@ cdef class DateTimeField(Field):
             return value
         return value.strftime(self.format)
 
-    
-    cpdef inline deserialize(self,data,dict context) :
-
-
+    cpdef inline deserialize(self, data, dict context) :
         if isinstance(data, datetime.date) and not isinstance(data, datetime.datetime):
             raise self.raise_if_fail('date')
 
@@ -981,12 +954,13 @@ cdef class DateTimeField(Field):
                     pass
 
         raise self.raise_if_fail('invalid')
-            
+
+
 @cython.final
 cdef class DateField(Field):
     """
     A field that (de)serializes to a :class:`datetime.date` object.
-    
+
     :param format: Either ``"%Y-%m-%d"`` or ``"%m/%d/%Y"``, or a custom
         string of the format passed to ``strftime``.
     :param input_formats: A list of strings, or a custom list of input formats
@@ -999,7 +973,7 @@ cdef class DateField(Field):
         'datetime': 'Expected a date but got a datetime.',
     }
 
-    def __init__(self, format=None,input_formats=None,**kwargs):
+    def __init__(self, format=None, input_formats=None, **kwargs):
         if format is None:
             self.format = api_settings.DATE_FORMAT
         else:
@@ -1012,8 +986,7 @@ cdef class DateField(Field):
 
         super().__init__(**kwargs)
 
-
-    cpdef inline serialize(self, value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if not value:
             return None
         if isinstance(value, str):
@@ -1029,9 +1002,7 @@ cdef class DateField(Field):
 
         return value.strftime(self.format)
 
-
-    cpdef inline deserialize(self, data,dict context) :
-
+    cpdef inline deserialize(self, data, dict context) :
         if isinstance(data, datetime.datetime):
             raise self.raise_if_fail('datetime')
 
@@ -1073,7 +1044,7 @@ cdef class TimeField(Field):
     }
     datetime_parser = datetime.datetime.strptime
 
-    def __init__(self, format=NO_DEFAULT,input_formats=None, **kwargs):
+    def __init__(self, format=NO_DEFAULT, input_formats=None, **kwargs):
         if format is NO_DEFAULT:
             self.format = api_settings.DATETIME_FORMAT
         else:
@@ -1085,11 +1056,9 @@ cdef class TimeField(Field):
 
         super().__init__(**kwargs)
 
-
-    cpdef inline serialize(self, value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if value in (None, ''):
             return None
-
 
         if self.format is None or isinstance(value, str):
             return value
@@ -1104,10 +1073,7 @@ cdef class TimeField(Field):
             return value.isoformat()
         return value.strftime(self.format)
 
-
-
     cpdef inline deserialize(self, data, dict context):
-
         if isinstance(data, datetime.time):
             return data
 
@@ -1131,11 +1097,10 @@ cdef class TimeField(Field):
         raise self.raise_if_fail('invalid')
 
 
-
 @cython.final
 cdef class FileField(Field):
     """
-    A file field.    
+    A file field.
 
     :param max_length: The maximum file size.
     :param alow_empty_file: Whether to allow uploading empty files.
@@ -1149,23 +1114,21 @@ cdef class FileField(Field):
         'max_length': 'Ensure this filename has at most {max_length} characters (it has {length}).',
     }
 
-    def __init__(self,**kwargs):
+    def __init__(self, **kwargs):
         self.max_length = kwargs.pop('max_length', None)
         self.allow_empty_file = kwargs.pop('allow_empty_file', False)
         super().__init__(**kwargs)
 
-        
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if not value :
             return None
         try:
             request = context.get('request', None)
             return request.build_absolute_uri(value.url)
-        except:
+        except Exception:
             return value.url
-        
-        
-    cpdef inline deserialize(self,value,dict context):
+
+    cpdef inline deserialize(self, value, dict context):
         try:
             file_name = value.name
             file_size = value.size
@@ -1176,10 +1139,11 @@ cdef class FileField(Field):
         if not self.allow_empty_file and not file_size:
             raise self.raise_if_fail('empty')
         if self.max_length and len(file_name) > self.max_length:
-            raise self.raise_if_fail('max_length',max_length=self.max_length, length=len(file_name))
+            raise self.raise_if_fail('max_length', max_length=self.max_length, length=len(file_name))
 
         return value
-    
+
+
 @cython.final
 cdef class ArrayField(Field):
     """
@@ -1203,12 +1167,12 @@ cdef class ArrayField(Field):
     }
     _initial = []
 
-    def __init__(self,child=None,**kwargs):
+    def __init__(self, child=None, **kwargs):
         self.child = kwargs.pop('child', copy.deepcopy(child))
         self.allow_empty = kwargs.pop('allow_empty', True)
         self.max_items = kwargs.pop('max_items', None)
         self.min_items = kwargs.pop('min_items', None)
-        self.exact_items =  kwargs.pop('exact_items', None)
+        self.exact_items = kwargs.pop('exact_items', None)
         super().__init__(**kwargs)
         if self.child is not None:
             self.child.bind(field_name='', root=self)
@@ -1216,14 +1180,13 @@ cdef class ArrayField(Field):
             self.min_items = self.exact_items
             self.max_items = self.exact_items
 
-                    
-    cpdef inline serialize(self,data ,dict context):
+    cpdef inline serialize(self, data, dict context):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
-        return [ self.child.serialize(item,context) if item is not None else None for item in data]
-    
-    cpdef inline deserialize(self,data,dict context):
+        return [self.child.serialize(item, context) if item is not None else None for item in data]
+
+    cpdef inline deserialize(self, data, dict context):
         """
         List of dicts of native values <- List of dicts of primitive datatypes.
         """
@@ -1236,29 +1199,30 @@ cdef class ArrayField(Field):
             and self.min_items == self.max_items
             and len(data) != self.min_items
         ):
-            raise self.raise_if_fail("exact_items",exact_items=self.exact_items)
+            raise self.raise_if_fail("exact_items", exact_items=self.exact_items)
         if self.min_items is not None and len(data) < self.min_items:
-            raise self.raise_if_fail("min_items",min_items=self.min_items)
+            raise self.raise_if_fail("min_items", min_items=self.min_items)
         elif self.max_items is not None and len(data) > self.max_items:
-            raise self.raise_if_fail("max_items",max_items=self.max_items)
+            raise self.raise_if_fail("max_items", max_items=self.max_items)
 
-        return self.run_child_validation(data,context)
+        return self.run_child_validation(data, context)
 
-    cpdef inline run_child_validation(self,data,dict context):
+    cpdef inline run_child_validation(self, data, dict context):
         cdef list result = []
         cdef dict errors = {}
         cdef int idx = 0
         for item in data :
             try:
-                result.append(self.child.run_validation(item,context))
+                result.append(self.child.run_validation(item, context))
             except ValidationError as e:
                 errors[idx] = e.detail
-            idx +=1
+            idx += 1
 
         if not errors:
             return result
         raise ValidationError(errors)
-    
+
+
 @cython.final
 cdef class DictField(Field):
     """A Dict Field.
@@ -1273,44 +1237,46 @@ cdef class DictField(Field):
     }
     _initial = {}
 
-    def __init__(self,child=None,**kwargs):
+    def __init__(self, child=None, **kwargs):
         self.child = kwargs.pop('child', copy.deepcopy(child))
         self.allow_empty = kwargs.pop('allow_empty', True)
         super().__init__(**kwargs)
         if self.child is not None:
             self.child.bind(field_name='', root=self)
 
-    cpdef inline serialize(self, data,dict context):
+    cpdef inline serialize(self, data, dict context):
         """
         List of object instances -> List of dicts of primitive datatypes.
         """
         return {
-            str(key) : self.child.serialize(value,context) if value is not None else None for key,value in data.items()
+            str(key) : self.child.serialize(value, context)
+            if value is not None else None for key, value in data.items()
         }
-    
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         """
         List of dicts of native values <- List of dicts of primitive datatypes.
         """
-        if not isinstance(data,dict):
+        if not isinstance(data, dict):
             raise self.raise_if_fail('not_a_dict', input_type=type(data).__name__)
         if not self.allow_empty and len(data) == 0:
             raise self.raise_if_fail('empty')
 
-        return self.run_child_validation(data,context)
+        return self.run_child_validation(data, context)
 
-    cpdef inline run_child_validation(self,dict data,dict context):
+    cpdef inline run_child_validation(self, dict data, dict context):
         cdef dict result = {}
         cdef dict errors = {}
-        for key,value in data.items():
+        for key, value in data.items():
             try:
-                result[str(key)] = self.child.run_validation(value,context)
+                result[str(key)] = self.child.run_validation(value, context)
             except ValidationError as e:
                 errors[key] = e.detail
 
         if not errors:
             return result
         raise ValidationError(errors)
+
 
 @cython.final
 cdef class JSONField(Field):
@@ -1331,20 +1297,20 @@ cdef class JSONField(Field):
         self.decoder = kwargs.pop('decoder', None)
         super().__init__(**kwargs)
 
-    cpdef inline serialize(self,value,dict context):
+    cpdef inline serialize(self, value, dict context):
         if self.binary:
-            value = json.dumps(value,cls=self.encoder)
+            value = json.dumps(value, cls=self.encoder)
             value = value.encode()
         return value
 
-    cpdef inline deserialize(self,data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         try:
             if self.binary:
                 if isinstance(data, bytes):
                     data = data.decode()
-                return json.loads(data,cls=self.decoder)
+                return json.loads(data, cls=self.decoder)
             else:
-                json.dumps(data,cls=self.encoder)
+                json.dumps(data, cls=self.encoder)
         except (TypeError, ValueError) as e:
             raise self.raise_if_fail('invalid')
         return data
@@ -1361,22 +1327,23 @@ cdef class RelatedField(Field):
         'incorrect_type': 'Incorrect type. Expected pk value, received {data_type}.',
 
     }
-    def __init__(self,**kwargs):
+
+    def __init__(self, **kwargs):
         self.queryset = kwargs.pop('queryset', None)
         super().__init__(**kwargs)
-        
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         try:
             if isinstance(data, bool):
                 raise TypeError
             data = self.queryset.get(pk=data)
         except ObjectDoesNotExist:
             raise self.raise_if_fail('does_not_exist', pk_value=data)
-        except (TypeError, ValueError): 
+        except (TypeError, ValueError):
             raise self.raise_if_fail('incorrect_type', data_type=type(data).__name__)
         return data
 
-    
+
 @cython.final
 cdef class ManyRelatedField(Field):
     """
@@ -1390,28 +1357,29 @@ cdef class ManyRelatedField(Field):
         'not_a_list': 'Expected a list of items but got type "{input_type}".',
         'empty': 'This list may not be empty.'
     }
-    def __init__(self,**kwargs):
+
+    def __init__(self, **kwargs):
         self.child_relation = kwargs.pop('child_relation', None)
         self.allow_empty = kwargs.pop('allow_empty', True)
         super().__init__(**kwargs)
-        
-    cpdef inline serialize(self,value,dict context):
-        
+
+    cpdef inline serialize(self, value, dict context):
+
         value = value.all() if hasattr(value, 'all') else value
         return [
             item.pk for item in value
-        ]            
+        ]
 
-    cpdef inline deserialize(self, data,dict context):
+    cpdef inline deserialize(self, data, dict context):
         if isinstance(data, str) or not hasattr(data, '__iter__'):
             raise self.raise_if_fail('not_a_list', input_type=type(data).__name__)
         if not self.allow_empty and len(data) == 0:
             raise self.raise_if_fail('empty')
         return [
-            self.child_relation.deserialize(item,context)
+            self.child_relation.deserialize(item, context)
             for item in data
         ]
-        
+
 
 @cython.final
 cdef class ConstantField(Field):
@@ -1425,19 +1393,20 @@ cdef class ConstantField(Field):
         'constant': 'Must be "{constant}".',
         'None': 'Must be None.'
     }
-    def __init__(self,constant,**kwargs):
+
+    def __init__(self, constant, **kwargs):
         self.constant = constant
         super().__init__(**kwargs)
         assert "allow_null" not in kwargs
-            
-    cpdef inline deserialize(self,data,dict context):
+
+    cpdef inline deserialize(self, data, dict context):
         if data != self.constant:
             if self.constant is None:
                 raise self.raise_if_fail("None")
-            raise self.raise_if_fail("constant",constant=self.constant)
+            raise self.raise_if_fail("constant", constant=self.constant)
         return data
-    
-    
+
+
 @cython.final
 cdef class RecursiveField(Field):
     """
@@ -1445,15 +1414,15 @@ cdef class RecursiveField(Field):
 
     :param many: Whether the field is a collection of items.
     :param context: The context passed to the field's :meth:`run_validation`.
-    :param only: A tuple or list of field names to include. 
+    :param only: A tuple or list of field names to include.
     :param exclude: A tuple or list of field names to exclude.
     :param kwargs: The same keyword arguments that :class:`Field` receives.
     """
-    def __init__(self,**kwargs):
-        self.many = kwargs.pop('many',False)
-        self.context = kwargs.pop('context',{})
-        self.only = kwargs.pop('only',None)
-        self.exclude = kwargs.pop('exclude',None)
+    def __init__(self, **kwargs):
+        self.many = kwargs.pop('many', False)
+        self.context = kwargs.pop('context', {})
+        self.only = kwargs.pop('only', None)
+        self.exclude = kwargs.pop('exclude', None)
         if self.only is not None and self.exclude is not None :
             raise OnlyAndExcludeError('You should use either "only" or "exclude"')
         if self.only is not None and not is_collection(self.only):
@@ -1461,14 +1430,14 @@ cdef class RecursiveField(Field):
         if self.exclude is not None and not is_collection(self.exclude):
             raise StringNotCollectionError('"exclude" should be a list of strings')
         super().__init__(**kwargs)
-        
-    cpdef inline serialize(self,value,dict context):
+
+    cpdef inline serialize(self, value, dict context):
         if self.only :
-            serializer = self.root.__class__(value,many=self.many,only=self.only,context=self.context)
+            serializer = self.root.__class__(value, many=self.many, only=self.only, context=self.context)
         elif self.exclude :
-            serializer = self.root.__class__(value,many=self.many,exclude=self.exclude,context=self.context)
+            serializer = self.root.__class__(value, many=self.many, exclude=self.exclude, context=self.context)
         else:
-            serializer = self.root.__class__(value,many=self.many,context=self.context)
+            serializer = self.root.__class__(value, many=self.many, context=self.context)
         return serializer.data
 
 
@@ -1482,13 +1451,13 @@ cdef class MethodField(Field):
     """
     is_method_field = True
 
-    def __init__(self,method_name=None,**kwargs):
-        kwargs['read_only']= True
+    def __init__(self, method_name=None, **kwargs):
+        kwargs['read_only'] = True
         kwargs['required'] = False
         self.method_name = method_name
         super().__init__(**kwargs)
-        
-    cpdef inline method_getter(self,field_name, root) :
+
+    cpdef inline method_getter(self, field_name, root) :
         if self.method_name is None:
             self.method_name = 'get_{0}'.format(field_name)
         return getattr(root, self.method_name)
