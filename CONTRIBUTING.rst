@@ -64,7 +64,7 @@ Ready to contribute? Here's how to set up `drf-turbo` for local development.
 
     $ git clone git@github.com:your_name_here/drf-turbo.git
 
-3. Change into the `drf-turbo` directory and run `python setup.py develop`.
+3. Change into the `drf-turbo` directory and run `python setup.py develop`::
     
     $ cd drf_turbo/
     $ python setup.py develop
@@ -75,7 +75,7 @@ Ready to contribute? Here's how to set up `drf-turbo` for local development.
 
    Now you can make your changes locally.
 
-5. When you're done making changes, check that your changes pass flake8,black,isort and the tests. you should ensure all dependencies are installed
+5. When you're done making changes, check that your changes pass flake8,black,isort and the tests. you should ensure all dependencies are installed::
 
     $ pip install -r requirements_dev.txt
     $ bash scripts/check
