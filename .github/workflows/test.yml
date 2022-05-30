@@ -25,3 +25,6 @@ jobs:
 
       - name: Run tests
         run: python runtests.py
+
+      - name: Run linting checks
+        run: bash scripts/check

@@ -1,15 +1,17 @@
 #cython: language_level=3
 
 import collections
+
 from django.core.exceptions import ObjectDoesNotExist
 
 
 cpdef bint is_iterable_and_not_string(arg):
     return (
-        isinstance(arg, collections.abc.Iterable) 
+        isinstance(arg, collections.abc.Iterable)
         and not isinstance(arg, str)
     )
-    
+
+
 cpdef bint is_collection(obj):
     """Return True if ``obj`` is a collection type, e.g list, tuple, queryset."""
     return is_iterable_and_not_string(obj) and not isinstance(obj, dict)
@@ -17,7 +19,7 @@ cpdef bint is_collection(obj):
 
 cpdef get_error_detail(exc_info):
     """
-    Translate django ValidationError to readable errors 
+    Translate django ValidationError to readable errors
     """
     cdef dict error_dict
     cdef list errors
@@ -45,11 +47,11 @@ cpdef str force_str(object obj, str encoding='utf-8'):
         return str(obj)
 
 cpdef get_execption_detail(exception):
-    if isinstance(exception,(list,tuple)):
+    if isinstance(exception, (list, tuple)):
         return [get_execption_detail(item) for item in exception]
-    
-    elif isinstance(exception,dict):
-        return {key : get_execption_detail(value) for key,value in exception.items()}
+
+    elif isinstance(exception, dict):
+        return {key : get_execption_detail(value) for key, value in exception.items()}
 
     return force_str(exception)
 
@@ -64,16 +66,13 @@ cpdef object get_attribute(object instance, list attrs):
                 instance = getattr(instance, attr)
         except ObjectDoesNotExist :
             return None
-            
+
     return instance
 
-    
+
 cpdef dict deepcopy(dict data):
     cdef dict output = data.copy()
     cdef str key
     for key, value in output.items():
-        output[key] = deepcopy(value) if isinstance(value, dict) else value        
+        output[key] = deepcopy(value) if isinstance(value, dict) else value
     return output
-
-
-
