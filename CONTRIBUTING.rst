@@ -78,7 +78,8 @@ Ready to contribute? Here's how to set up `drf-turbo` for local development.
 5. When you're done making changes, check that your changes pass flake8,black,isort and the tests. you should ensure all dependencies are installed::
 
     $ pip install -r requirements_dev.txt
-    $ python3 runtests.py
+    $ bash scripts/check
+    $ pytest
 
 6. Commit your changes and push your branch to GitHub::
 

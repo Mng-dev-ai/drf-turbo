@@ -29,7 +29,7 @@ author = "Michael Gendy"
 autoclass_content = "both"
 
 # Theme
-html_theme = 'furo'
+html_theme = "furo"
 
 
 html_sidebars = {
@@ -42,6 +42,3 @@ html_sidebars = {
         "sidebar/scroll-end.html",
     ]
 }
-
-
-

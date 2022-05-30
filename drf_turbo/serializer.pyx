@@ -1,18 +1,22 @@
 # cython: language_level=3
-
 from django.utils.functional import cached_property
-from drf_turbo.fields cimport Field,RelatedField,SkipField,NO_DEFAULT
+
+from drf_turbo.fields cimport NO_DEFAULT, Field, RelatedField, SkipField
+
+import traceback
+from collections.abc import Mapping
+
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 from drf_turbo.exceptions import *
 from drf_turbo.utils import *
-from django.core.exceptions import ValidationError as DjangoValidationError
-from collections.abc import Mapping
-import traceback
+
 cimport cython
 
 cdef class BaseSerializer(Field):
     """
     Base class for all serializers.
-    
+
     :param instance: The instance to be serialized.
     :param many: Serialize single object or a list of objects.
     :param data: The data to be deserialized.
@@ -24,16 +28,16 @@ cdef class BaseSerializer(Field):
 
     """
     def __init__(
-        self, 
-        object instance = None, 
-        bint many = False, 
-        object data = None, 
-        dict context = None,
-        object only = None,
-        object exclude = None,
-        bint partial = False,
+        self,
+        object instance=None,
+        bint many=False,
+        object data=None,
+        dict context=None,
+        object only=None,
+        object exclude=None,
+        bint partial=False,
         **kwargs
-        ):
+    ):
         if only is not None and exclude is not None :
             raise OnlyAndExcludeError('You should use either "only" or "exclude"')
         if only is not None and not is_collection(only):
@@ -41,23 +45,21 @@ cdef class BaseSerializer(Field):
         if exclude is not None and not is_collection(exclude):
             raise StringNotCollectionError('"exclude" should be a list of strings')
         super().__init__(**kwargs)
-        self._instance =instance
+        self._instance = instance
         self._data = data
-        self.many = many 
+        self.many = many
         self._initial_data = None
         self._initial_instance = None
         self.context = context
         self.only = only
         self.exclude = exclude
         self.partial = partial
-        
-   
-    cpdef bint is_valid(self,bint raise_exception=False) except -1:
+
+    cpdef bint is_valid(self, bint raise_exception=False) except -1:
         """
         Whether the data is valid.
 
         :param raise_exception: Whether to raise an exception if the data is invalid.
-
         """
         assert hasattr(self, '_data'), (
             'Cannot call `.is_valid()` as no `data=` keyword argument was '
@@ -65,7 +67,7 @@ cdef class BaseSerializer(Field):
         )
         if not hasattr(self, '_validated_data'):
             try:
-                self._validated_data =self.run_validation(self._data,self.context)
+                self._validated_data = self.run_validation(self._data, self.context)
             except ValidationError as exc:
                 self._validated_data = {}
                 self._errors = exc.detail
@@ -75,9 +77,8 @@ cdef class BaseSerializer(Field):
         if self._errors and raise_exception:
             raise ValidationError(self.errors)
         return not bool(self._errors)
-    
-    
-    def save(self,**kwargs):
+
+    def save(self, **kwargs):
         """
         Create or update a model instance.
 
@@ -96,7 +97,6 @@ cdef class BaseSerializer(Field):
             self._instance = self.create(validated_data)
 
         return self._instance
-    
 
     @property
     def errors(self):
@@ -107,7 +107,7 @@ cdef class BaseSerializer(Field):
             msg = 'You must call `.is_valid()` before accessing `.errors`.'
             raise AssertionError(msg)
         return self._errors
-    
+
     cpdef dict get_initial_data(self):
         """
         Return the initial data for the fields.
@@ -120,15 +120,15 @@ cdef class BaseSerializer(Field):
             if not isinstance(self._data, Mapping):
                 return dict()
             return dict([
-                (name, self._data.get(name,NO_DEFAULT))
+                (name, self._data.get(name, NO_DEFAULT))
                 for name, field in self.fields.items()
-                if (self._data.get(name,NO_DEFAULT) is not NO_DEFAULT) and
-                not field.read_only
+                if (self._data.get(name, NO_DEFAULT) is not NO_DEFAULT)
+                and not field.read_only
             ])
 
         return dict([
             (name, field.get_initial())
-            for name,field in self.fields.items()
+            for name, field in self.fields.items()
             if not field.read_only
         ])
 
@@ -139,15 +139,15 @@ cdef class BaseSerializer(Field):
         """
         if not self._initial_data :
             if self._instance is not None and not getattr(self, '_errors', None):
-                self._initial_data = self.serialize(self._instance,self.context)
+                self._initial_data = self.serialize(self._instance, self.context)
             elif hasattr(self, '_validated_data') and not getattr(self, '_errors', None):
-                self._initial_data = self.serialize(self.validated_data,self.context)
+                self._initial_data = self.serialize(self.validated_data, self.context)
 
             else:
                 self._initial_data = self.get_initial_data()
 
         return self._initial_data
-    
+
     @property
     def instance(self):
         """
@@ -155,7 +155,6 @@ cdef class BaseSerializer(Field):
         """
         return self._instance
 
-    
     @property
     def validated_data(self):
         """
@@ -165,46 +164,44 @@ cdef class BaseSerializer(Field):
             msg = 'You must call `.is_valid()` before accessing `.validated_data`.'
             raise AssertionError(msg)
         return self._validated_data
-    
+
+
 cdef class Serializer(BaseSerializer):
-    
+
     def __getmetaclass__(_):
         from drf_turbo.meta import SerializerMetaclass
         return SerializerMetaclass
 
     def get_fields(self):
         """
-        Return the dict of field names -> field instances that should be added to the serializer. 
+        Return the dict of field names -> field instances that should be added to the serializer.
         """
         return deepcopy(self._fields)
-    
 
     def fields(self):
         """
-        This is a shortcut for accessing the dict on the *fields* attribute. 
+        This is a shortcut for accessing the dict on the *fields* attribute.
         """
         cdef str key
         cdef Field value
         cdef dict fields = {}
         for key, value in self.get_fields().items():
-            fields[key] = value            
-            fields[key].bind(key,self)
+            fields[key] = value
+            fields[key].bind(key, self)
         return fields
-    
+
     from forbiddenfruit import curse as _curse
-    _curse(Serializer,'fields',cached_property(fields))
+    _curse(Serializer, 'fields', cached_property(fields))
     Serializer.fields.__set_name__(Serializer, 'fields')
 
-
     @property
-    def _writable_fields(self):    
+    def _writable_fields(self):
         """
         Return a list of all writable fields.
         """
         cdef str k
         cdef Field v
         return {k: v for k, v in self.fields.items() if not v.read_only}
-    
 
     @property
     def _readable_fields(self):
@@ -214,9 +211,9 @@ cdef class Serializer(BaseSerializer):
         cdef str k
         cdef Field v
         return {k: v for k, v in self.fields.items() if not v.write_only}
-    
+
     @property
-    def _only_fields(self):  
+    def _only_fields(self):
         """
         Return a list of all fields that have been specified in the `only` option.
         """
@@ -224,11 +221,11 @@ cdef class Serializer(BaseSerializer):
         is_nested = any('__' in field for field in only)
         if is_nested :
             fields = self._parse_nested_fields(only)
-            self._select_nested_fields(self,fields,action='include') 
+            self._select_nested_fields(self, fields, action='include')
         else:
-            self._fields_to_include(self,only)
+            self._fields_to_include(self, only)
         return self.fields
-    
+
     @property
     def _exclude_fields(self):
         """
@@ -238,13 +235,13 @@ cdef class Serializer(BaseSerializer):
         is_nested = any('__' in field for field in exclude)
         if is_nested:
             fields = self._parse_nested_fields(exclude)
-            self._select_nested_fields(self,fields,action='exclude',is_nested=True) 
+            self._select_nested_fields(self, fields, action='exclude', is_nested=True)
         else:
-            self._fields_to_exclude(self,exclude,is_nested=False)
-                        
+            self._fields_to_exclude(self, exclude, is_nested=False)
+
         return self.fields
-    
-    cdef inline dict _parse_nested_fields(self,object fields):
+
+    cdef inline dict _parse_nested_fields(self, object fields):
         """
         Parse nested fields
 
@@ -262,19 +259,25 @@ cdef class Serializer(BaseSerializer):
                     obj[v] = obj.get(v, {"fields": []})
                     obj = obj[v]
         return field_object
-    
-    cdef inline void _select_nested_fields(self,Serializer serializer,object fields,basestring action,bint is_nested=False):
+
+    cdef inline void _select_nested_fields(
+        self,
+        Serializer serializer,
+        object fields,
+        basestring action,
+        bint is_nested=False
+    ):
         for k in fields:
             if k == "fields":
                 if action == 'include' :
                     self._fields_to_include(serializer, fields[k])
                 elif action == 'exclude':
-                    self._fields_to_exclude(serializer,fields[k],is_nested)
+                    self._fields_to_exclude(serializer, fields[k], is_nested)
 
             else:
-                self._select_nested_fields(serializer.fields[k], fields[k],action=action,is_nested=is_nested)
-    
-    cdef inline object _fields_to_include(self,Serializer serializer,object fields):
+                self._select_nested_fields(serializer.fields[k], fields[k], action=action, is_nested=is_nested)
+
+    cdef inline object _fields_to_include(self, Serializer serializer, object fields):
         """
         Include fields.
 
@@ -287,8 +290,8 @@ cdef class Serializer(BaseSerializer):
             if field_name in serializer.fields :
                 serializer.fields.pop(field_name)
         return serializer.fields
-    
-    cdef inline object _fields_to_exclude(self,Serializer serializer,object fields,bint is_nested):
+
+    cdef inline object _fields_to_exclude(self, Serializer serializer, object fields, bint is_nested):
         """
         Exclude fields.
 
@@ -302,7 +305,7 @@ cdef class Serializer(BaseSerializer):
             if is_nested :
                 if field_name in existing :
                     if field_name in self.fields.keys() :
-                        if not issubclass(self.fields[field_name].__class__,Serializer):
+                        if not issubclass(self.fields[field_name].__class__, Serializer):
                             serializer.fields.pop(field_name)
                     else:
                         serializer.fields.pop(field_name)
@@ -311,39 +314,37 @@ cdef class Serializer(BaseSerializer):
                     serializer.fields.pop(field_name)
         return serializer.fields
 
+    cdef inline dict _serialize(self, object instance, dict fields):
 
-    cdef inline dict _serialize(self,object instance,dict fields):
-        
         cdef str name
         cdef Field field
         cdef dict ret = {}
         cdef bint is_dict
-        for name,field in fields.items():
-            attr = field.attr if field.attr and not '.' in field.attr else name
-            if field.is_method_field:   
-                result = field.method_getter(attr,self.__class__)(self,instance)
+        for name, field in fields.items():
+            attr = field.attr if field.attr and '.' not in field.attr else name
+            if field.is_method_field:
+                result = field.method_getter(attr, self.__class__)(self, instance)
             else:
                 try:
-                    if isinstance(field,RelatedField):
-                        result = field.get_attribute(instance,[attr + '_id'])
+                    if isinstance(field, RelatedField):
+                        result = field.get_attribute(instance, [attr + '_id'])
                     else:
                         result = field.get_attribute(instance)
-                        if hasattr(result,'all'):
+                        if hasattr(result, 'all'):
                             result = result.all()
-                                            
+
                 except SkipField :
                     continue
-                   
+
                 if result is not None:
                     if field.call:
                         result = result()
-                    result = field.serialize(result,self.context)
+                    result = field.serialize(result, self.context)
             ret[attr] = result
-            
-        return ret    
-    
-    
-    cpdef serialize(self,object instance,dict context):
+
+        return ret
+
+    cpdef serialize(self, object instance, dict context):
         """
         Serialize a model instance.
 
@@ -352,11 +353,11 @@ cdef class Serializer(BaseSerializer):
         """
         try:
             only = self.context.get('request').GET.get('only')
-        except :
+        except Exception:
             only = None
         try:
             exclude = self.context.get('request').GET.get('exclude')
-        except :
+        except Exception:
             exclude = None
         if self.only or only is not None :
             fields = self._only_fields
@@ -364,24 +365,24 @@ cdef class Serializer(BaseSerializer):
             fields = self._exclude_fields
         fields = self._readable_fields
         if self.many :
-            return [self._serialize(o,fields) for o in instance]
-        return self._serialize(instance,fields)
-    
-    cdef inline dict _deserialize(self, object data,dict fields):
+            return [self._serialize(o, fields) for o in instance]
+        return self._serialize(instance, fields)
+
+    cdef inline dict _deserialize(self, object data, dict fields):
         if not isinstance(data, Mapping):
             raise ValidationError(
                 'Invalid data type: %s' % type(data).__name__
             )
-        cdef dict ret = {} 
+        cdef dict ret = {}
         cdef dict errors = {}
         cdef str name
         cdef str attr
-        for name,field in fields.items():
-            attr = field.attr if field.attr and not '.' in field.attr else name
+        for name, field in fields.items():
+            attr = field.attr if field.attr and '.' not in field.attr else name
             validate_method = getattr(self, 'validate_' + attr, None)
-            value = data.get(name,NO_DEFAULT)
+            value = data.get(name, NO_DEFAULT)
             try:
-                validated_value = field.run_validation(value,self.context)
+                validated_value = field.run_validation(value, self.context)
                 if validate_method is not None:
                     validated_value = validate_method(validated_value)
 
@@ -393,12 +394,12 @@ cdef class Serializer(BaseSerializer):
                 continue
             else:
                 ret[attr] = validated_value
-                    
+
         if errors:
             raise ValidationError(errors)
         return ret
 
-    cpdef deserialize(self,object data,dict context):
+    cpdef deserialize(self, object data, dict context):
         """
         Given a dictionary-like structure, build a dictionary of deserialized
         fields and return a model instance.
@@ -408,32 +409,30 @@ cdef class Serializer(BaseSerializer):
         """
         fields = self._writable_fields
         if self.many :
-            return [self._deserialize(o,fields) for o in data]
-        return self._deserialize(data,fields)
-    
-    cpdef run_validation(self,object data,dict context):
+            return [self._deserialize(o, fields) for o in data]
+        return self._deserialize(data, fields)
+
+    cpdef run_validation(self, object data, dict context):
         """
         Validate an entire bundle of data.
 
         :param data: The data to validate.
         :param context: The context for the request.
         """
-        value = self.validate(self.deserialize(data,context))
+        value = self.validate(self.deserialize(data, context))
         return value
-    
-    cpdef validate(self,object data):
+
+    cpdef validate(self, object data):
         """
         Validate a dictionary of deserialized field values.
 
         :param data: A dictionary of deserialized field values.
         """
         return data
-    
-    
-    
+
 
 cdef class ModelSerializer(Serializer):
-    
+
     def __getmetaclass__(_):
         from drf_turbo.meta import ModelSerializerMetaclass
         return ModelSerializerMetaclass
@@ -452,8 +451,6 @@ cdef class ModelSerializer(Serializer):
         for attr, value in data.items():
             if attr in many_to_many_fields :
                 m2m_fields[attr] = validated_data.pop(attr)
-            
-
         try:
             instance = model._default_manager.create(**validated_data)
         except TypeError:
@@ -483,7 +480,6 @@ cdef class ModelSerializer(Serializer):
 
         return instance
 
-
     cpdef update(self, instance, validated_data):
         """
         Update a model instance.
@@ -492,12 +488,12 @@ cdef class ModelSerializer(Serializer):
         :param validated_data: A dictionary of deserialized data.
         """
         opts = instance._meta.concrete_model._meta
-        many_to_many_fields =[field.name for field in opts.many_to_many if field.serialize]
+        many_to_many_fields = [field.name for field in opts.many_to_many if field.serialize]
         m2m_fields = []
         for attr, value in validated_data.items():
             if attr in many_to_many_fields :
                 m2m_fields.append((attr, value))
-            else:    
+            else:
                 setattr(instance, attr, value)
 
         instance.save()

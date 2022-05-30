@@ -1,5 +1,6 @@
-from drf_turbo.fields cimport Field
 cimport cython_metaclass
+
+from drf_turbo.fields cimport Field
 
 
 cdef class BaseSerializer(Field) :
