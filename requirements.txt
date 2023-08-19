@@ -1,6 +1,6 @@
 forbiddenfruit==0.1.4
 djangorestframework==3.12.4
-pyyaml==6.0
+pyyaml>=5.3.1,<5.4
 uritemplate==4.1.1
 djangorestframework-simplejwt==5.2.0
 pytz==2022.1
