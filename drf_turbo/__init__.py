@@ -11,8 +11,8 @@ from drf_turbo.fields import (ArrayField, BoolField, ChoiceField,
 from drf_turbo.serializer import BaseSerializer, ModelSerializer, Serializer
 
 __author__ = """Michael Gendy"""
-__email__ = "mngback@gmail.com"
-__version__ = "0.1.6"
+__email__ = "nagymichel13@gmail.com"
+__version__ = "0.1.7"
 
 __all__ = [
     "BaseSerializer",

@@ -21,8 +21,6 @@ Overview
 drf-turbo is a drop-in serializer for Django REST Framework (DRF). drf-turbo serializers run around 7.75 times faster
 than what what you get from DRF's packaged serializer.
 
-**NOTE**: It is written in Cython, which is required to build this package.
-
 
 Requirements
 ------------
