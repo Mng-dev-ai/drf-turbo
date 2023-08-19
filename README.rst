@@ -31,7 +31,7 @@ Requirements
 
 * Django REST Framework
 
-* Cython
+* pytz
 
 * forbiddenfruit
 

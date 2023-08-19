@@ -4,3 +4,4 @@ pyyaml==6.0
 uritemplate==4.1.1
 djangorestframework-simplejwt==5.2.0
 pytz==2022.1
+django<4.0,>=3.2.5
