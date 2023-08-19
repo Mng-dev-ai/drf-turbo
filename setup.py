@@ -16,17 +16,15 @@ with open("requirements.txt") as requirements_file:
 
 setup(
     author="Michael Gendy",
-    author_email="mngback@gmail.com",
+    author_email="nagymichel13@gmail.com",
     python_requires=">=3.8, <3.10",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Natural Language :: English",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
     ],
     description="An alternative serializer implementation for REST framework written in cython built for speed.",
     install_requires=requirements,
@@ -38,7 +36,7 @@ setup(
     packages=find_packages(include=["drf_turbo", "drf_turbo.*"]),
     test_suite="tests",
     url="https://github.com/Mng-dev-ai/drf-turbo",
-    version="0.1.6",
+    version="0.1.7",
     zip_safe=False,
     ext_modules=[
         Extension(

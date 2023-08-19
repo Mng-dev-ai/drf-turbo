@@ -30,3 +30,8 @@ History
 * clean project
 * drop support for renderers,parsers, and responses
 * remove deprecated methods
+
+0.1.7 (2023-08-19)
+------------------
+* pin requirements
+* use c extensions
