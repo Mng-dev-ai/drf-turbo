@@ -2,8 +2,7 @@
 
 """The setup script."""
 
-from setuptools import find_packages, setup
-from Cython.Build import cythonize
+from setuptools import find_packages, setup, Extension
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
@@ -18,7 +17,7 @@ with open("requirements.txt") as requirements_file:
 setup(
     author="Michael Gendy",
     author_email="mngback@gmail.com",
-    python_requires=">=3.6",
+    python_requires=">=3.8, <3.10",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -41,5 +40,26 @@ setup(
     url="https://github.com/Mng-dev-ai/drf-turbo",
     version="0.1.6",
     zip_safe=False,
-    ext_modules=cythonize(["drf_turbo/*.pyx"]),
+    ext_modules=[
+        Extension(
+            "drf_turbo.serializer",
+            ["drf_turbo/serializer.c"],
+        ),
+        Extension(
+            "drf_turbo.utils",
+            ["drf_turbo/utils.c"],
+        ),
+        Extension(
+            "drf_turbo.fields",
+            ["drf_turbo/fields.c"],
+        ),
+        Extension(
+            "drf_turbo.exceptions",
+            ["drf_turbo/exceptions.c"],
+        ),
+        Extension(
+            "drf_turbo.cython_metaclass",
+            ["drf_turbo/cython_metaclass.c"],
+        ),
+    ]
 )

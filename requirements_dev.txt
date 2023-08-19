@@ -1,5 +1,5 @@
-pytest>=7.1.2
-cython>=0.29.30
+pytest==7.1.2
+cython==0.29.30
 isort==5.10.1
 flake8==3.9.2
-black==22.3.0 
+black==22.3.0
