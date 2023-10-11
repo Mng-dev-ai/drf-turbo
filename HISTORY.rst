@@ -35,3 +35,7 @@ History
 ------------------
 * pin requirements
 * use c extensions
+
+0.1.8 (2023-10-11)
+------------------
+* add support for django 4.0 and python 3.10
