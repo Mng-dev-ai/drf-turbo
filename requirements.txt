@@ -1,7 +1,7 @@
 forbiddenfruit==0.1.4
-djangorestframework==3.12.4
+djangorestframework>=3.12.4
 pyyaml>=5.3.1,<5.4
 uritemplate==4.1.1
 djangorestframework-simplejwt==5.2.0
 pytz==2022.1
-django<4.0,>=3.2.5
+django<5.0,>=3.2.5
