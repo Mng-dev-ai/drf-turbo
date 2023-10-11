@@ -17,7 +17,7 @@ with open("requirements.txt") as requirements_file:
 setup(
     author="Michael Gendy",
     author_email="nagymichel13@gmail.com",
-    python_requires=">=3.8, <3.10",
+    python_requires=">=3.8, <3.11",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
