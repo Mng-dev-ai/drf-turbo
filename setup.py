@@ -36,7 +36,7 @@ setup(
     packages=find_packages(include=["drf_turbo", "drf_turbo.*"]),
     test_suite="tests",
     url="https://github.com/Mng-dev-ai/drf-turbo",
-    version="0.1.8",
+    version="0.1.9",
     zip_safe=False,
     ext_modules=[
         Extension(
